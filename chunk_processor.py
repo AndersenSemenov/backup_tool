@@ -1,20 +1,23 @@
 import xxhash
 
-chunk_fix_size = 5
+chunk_fix_size = 10
 
 
 class ChunkedFile:
-    def __init__(self, file_path):
+    def __init__(self, file_path, file_name):
         with open(file_path) as f:
+            self.file_name = file_name
+
             contents = f.read()
 
-            self.chunk_list = list(split_string_into_chunks(contents, chunk_fix_size))
-            print(self.chunk_list)
+            self.file_chunk_list = list(split_string_into_chunks(contents, chunk_fix_size))
+            print(self.file_chunk_list)
 
-            self.chunk_name_list = list(file_path + '_' + i for i in range(0, len(self.chunk_list)))
+#           where to calculate and store chunk remote name
+#             self.chunk_name_list = list(file_path + '_' + i for i in range(0, len(self.file_chunk_list)))
 
             # calculate checksum for each chunk
-            self.checksum_list = list(xxhash.xxh32(chunk).digest() for chunk in self.chunk_list)
+            self.checksum_list = list(xxhash.xxh32(chunk).digest() for chunk in self.file_chunk_list)
             print(self.checksum_list)
 
 
