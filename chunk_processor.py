@@ -14,7 +14,7 @@ class ChunkedFile:
             print(self.file_chunk_list)
 
             # calculate checksum for each chunk
-            self.checksum_list = list(xxhash.xxh32(chunk).digest() for chunk in self.file_chunk_list)
+            self.checksum_list = list(xxhash.xxh32(chunk).hexdigest() for chunk in self.file_chunk_list)
             print(self.checksum_list)
 
 

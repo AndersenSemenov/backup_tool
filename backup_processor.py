@@ -47,7 +47,6 @@ def init_backup(hostname: string, username: string, private_key_file_path: strin
         client.ssh_client.close()
 
 
-# tmp situation: files not added/deleted
 def incremental_backup_update(hostname: string, username: string, private_key_file_path: string,
                               local_path: string, remote_path: string):
     local_files = os.listdir(local_path)
@@ -61,7 +60,7 @@ def incremental_backup_update(hostname: string, username: string, private_key_fi
         stdin, stdout, stderr = client.ssh_client.exec_command(
             f"cd {os.path.join(remote_path, remote_folder_name)} && getfattr -d -m 'user.checksum' ./*")
         macthes = re.findall(r"user\.checksum=.*?\n", stdout.read().decode('utf-8'))
-        remote_hashes_dict[remote_folder_name] = (list(map(lambda el: el[el.find('=') + 2:-3], macthes)))
+        remote_hashes_dict[remote_folder_name] = (list(map(lambda el: el[el.find('=') + 2:-2], macthes)))
 
     print(f"remote_hashes_dict - {remote_hashes_dict}")
 
@@ -72,15 +71,30 @@ def incremental_backup_update(hostname: string, username: string, private_key_fi
 
         local_hashes = chunked_file.checksum_list
         diff_chunks = []
+        added_chunks = []
+        deleted_chunks = []
 
         print(f"remote hashes for file {remote_file_name} is {remote_hashes}")
         print(f"local hashes for file {remote_file_name} is {local_hashes}")
 
-        for i in range(len(local_hashes)):
+        for i in range(min(len(local_hashes), len(remote_hashes))):
             if local_hashes[i] != remote_hashes[i]:
                 diff_chunks.append(i)
 
-        print(f"File in differs in chunks with nums - {diff_chunks}")
+        #     new chunks added or deleted, need to upload them to remote
+        #     added_chunks/deleted_chunks lists
+        if len(local_hashes) > len(remote_hashes):
+            for i in range(len(remote_hashes), len(local_hashes)):
+                added_chunks.append(i)
+        elif len(remote_hashes) > len(local_hashes):
+            for i in range(len(local_hashes), len(remote_hashes)):
+                deleted_chunks.append(i)
+
+        if not diff_chunks or not added_chunks or not deleted_chunks:
+            print(f"File in differs in chunks with nums - {diff_chunks}, "
+                  f"added chunks with nums - {added_chunks}, deleted chunks with nums - {deleted_chunks}")
+        else:
+            print("File is equal to remote copy")
 
 
 def get_remote_file_name_by_local():
