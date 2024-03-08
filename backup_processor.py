@@ -65,8 +65,8 @@ def incremental_backup_update(hostname: string, username: string, private_key_fi
     print(f"remote_hashes_dict - {remote_hashes_dict}")
 
     for chunked_file in local_chunked_files:
-        i = chunked_file.file_name.find(".")
-        remote_file_name = chunked_file.file_name[0:i] + "_backup_folder"
+        ind = chunked_file.file_name.find(".")
+        remote_file_name = chunked_file.file_name[0:ind] + "_backup_folder"
         remote_hashes = remote_hashes_dict[remote_file_name]
 
         local_hashes = chunked_file.checksum_list
@@ -93,6 +93,33 @@ def incremental_backup_update(hostname: string, username: string, private_key_fi
         if not diff_chunks or not added_chunks or not deleted_chunks:
             print(f"File in differs in chunks with nums - {diff_chunks}, "
                   f"added chunks with nums - {added_chunks}, deleted chunks with nums - {deleted_chunks}")
+
+            remote_file_name = chunked_file.file_name[0:ind] + "_backup_folder"
+            client.sftp_client.chdir(remote_file_name)
+
+            for diff_chunk in diff_chunks:
+                chunk_file_name = chunked_file.file_name[0:ind] + f"_{diff_chunk}" + ".txt"
+                remote_chunk_of_file = client.sftp_client.file(chunk_file_name, "w")
+                new_content = chunked_file.file_chunk_list[diff_chunk]
+                remote_chunk_of_file.write(new_content)
+                remote_chunk_of_file.flush()
+
+                remote_full_path_of_chunk = os.path.join(remote_path, remote_file_name, chunk_file_name)
+                client.ssh_client.exec_command(
+                    f"setfattr --name=user.checksum --value={chunked_file.checksum_list[diff_chunk]} {remote_full_path_of_chunk}")
+            for added_chunk in added_chunks:
+                chunk_file_name = chunked_file.file_name[0:ind] + f"_{added_chunk}" + ".txt"
+                remote_chunk_of_file = client.sftp_client.file(chunk_file_name, "a")
+                new_content = chunked_file.file_chunk_list[added_chunk]
+                remote_chunk_of_file.write(new_content)
+                remote_chunk_of_file.flush()
+
+                remote_full_path_of_chunk = os.path.join(remote_path, remote_file_name, chunk_file_name)
+                client.ssh_client.exec_command(
+                    f"setfattr --name=user.checksum --value={chunked_file.checksum_list[added_chunk]} {remote_full_path_of_chunk}")
+            for deleted_chunk in deleted_chunks:
+                chunk_file_name = chunked_file.file_name[0:ind] + f"_{deleted_chunk}" + ".txt"
+                client.sftp_client.remove(chunk_file_name)
         else:
             print("File is equal to remote copy")
 
