@@ -11,10 +11,10 @@ def cli():
 @cli.command()
 @click.option("--remote-ip-address")
 @click.option("--remote-user")
-@click.option("--remote-password")
+@click.option("--private-key-file-path")
 @click.option("--local-path")
 @click.option("--remote-path")
-def init_backup_command(remote_ip_address,
+def init_backup(remote_ip_address,
                         remote_user,
                         private_key_file_path,
                         local_path,
@@ -27,10 +27,10 @@ def init_backup_command(remote_ip_address,
 @cli.command()
 @click.option("--remote-ip-address")
 @click.option("--remote-user")
-@click.option("--remote-password")
+@click.option("--private-key-file-path")
 @click.option("--local-path")
 @click.option("--remote-path")
-def incremental_backup_command(remote_ip_address,
+def incremental_backup(remote_ip_address,
                                remote_user,
                                private_key_file_path,
                                local_path,
