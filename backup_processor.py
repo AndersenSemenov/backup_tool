@@ -59,8 +59,8 @@ def incremental_backup_update(hostname: string, username: string, private_key_fi
     for remote_folder_name in client.sftp_client.listdir():
         stdin, stdout, stderr = client.ssh_client.exec_command(
             f"cd {os.path.join(remote_path, remote_folder_name)} && getfattr -d -m 'user.checksum' ./*")
-        macthes = re.findall(r"user\.checksum=.*?\n", stdout.read().decode('utf-8'))
-        remote_hashes_dict[remote_folder_name] = (list(map(lambda el: el[el.find('=') + 2:-2], macthes)))
+        matches = re.findall(r"user\.checksum=.*?\n", stdout.read().decode('utf-8'))
+        remote_hashes_dict[remote_folder_name] = (list(map(lambda el: el[el.find('=') + 2:-2], matches)))
 
     print(f"remote_hashes_dict - {remote_hashes_dict}")
 
