@@ -1,5 +1,7 @@
 import xxhash
 
+from jump_based_chunking import gear_consume, get_chunks_boarders
+
 chunk_fix_size = 10
 
 
@@ -8,9 +10,9 @@ class ChunkedFile:
         with open(file_path) as f:
             self.file_name = file_name
 
-            contents = f.read()
+            content = f.read()
 
-            self.file_chunk_list = list(split_string_into_chunks(contents, chunk_fix_size))
+            self.file_chunk_list = get_chunks_boarders(content)
             print(self.file_chunk_list)
 
             # calculate checksum for each chunk
