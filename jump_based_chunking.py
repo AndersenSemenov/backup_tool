@@ -1,16 +1,19 @@
-import random
+import csv
 import string
 
-table = [random.randint(0, 2 ** 32 - 1)] * 256
-modulus = 2 ** 32  #
+modulus = 2 ** 32
 
 window_size = 256
 minimum_chunk_size = 512
 average_expected_chunk_size = 8192
 maximum_chunk_size = 2 * average_expected_chunk_size
-jump_length = average_expected_chunk_size / 2
+jump_length = average_expected_chunk_size // 2
 maskC = 0x590003570000
 maskJ = 0x590003560000
+
+with open('resources/gear_table.csv') as file:
+    gear_table_csv = csv.reader(file)
+    gear_table = [int(s) for line in gear_table_csv for s in line]
 
 
 def get_chunks_boarders(content: string) -> list:
@@ -19,7 +22,7 @@ def get_chunks_boarders(content: string) -> list:
     content_size = len(content)
     while current < content_size:
         right_boarder = get_chunk_boarder(content, current, content_size)
-        file_chunk_list.append(string[current:current + right_boarder])
+        file_chunk_list.append(content[current:right_boarder - 1])
         current = right_boarder
     return file_chunk_list
 
@@ -29,7 +32,11 @@ def get_chunk_boarder(content: string, current: int, content_size: int) -> int:
     fingerprint = 0
     curr_window_size = 0
     while i < content_size:
-        fingerprint = slide_window_on_one_byte(fingerprint, ord(content[i]), window_size)
+        fingerprint = gear_consume(fingerprint, ord(content[i]), curr_window_size)
+
+        if curr_window_size < window_size:
+            curr_window_size += 1
+
         if curr_window_size == window_size and fingerprint & maskJ == 0:
             if fingerprint & maskC == 0:
                 return i
@@ -41,15 +48,8 @@ def get_chunk_boarder(content: string, current: int, content_size: int) -> int:
     return min(i, content_size)
 
 
-def slide_window_on_one_byte(fingerprint, current_byte, curr_window_size) -> int:
+def gear_consume(fingerprint, current_byte, curr_window_size) -> int:
     if curr_window_size < window_size:
-        return gear_consume(fingerprint, current_byte, False)
+        return (fingerprint + gear_table[current_byte]) % modulus
     else:
-        return gear_consume(fingerprint, current_byte, True)
-
-
-def gear_consume(fingerprint, current_byte, is_proper_window_size: bool) -> int:
-    if is_proper_window_size:
-        return ((fingerprint << 1) + table[current_byte]) % modulus
-    else:
-        return (fingerprint + table[current_byte]) % modulus
+        return ((fingerprint << 1) + gear_table[current_byte]) % modulus
