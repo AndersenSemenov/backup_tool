@@ -17,7 +17,6 @@ def zip_init_backup(hostname: string, username: string, private_key_file_path: s
             chunked_files.append(
                 ChunkedFile(file_path=os.path.join(local_path, local_file), file_name=local_file, tmp_dir=tmp_dir))
 
-        # tmp dir with zip of chunked files
         chunked_files = os.listdir(tmp_dir)
         print(chunked_files)
 

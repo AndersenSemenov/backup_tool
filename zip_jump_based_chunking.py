@@ -40,8 +40,10 @@ def get_chunks_boarders(content: string, file_name, tmp_dir):
             current = right_boarder
             j += 1
 
+    with open(os.path.join(local_tmp_folder, file_name[0:i] + "_checksums"), 'w', newline='') as csv_file:
+        wr = csv.writer(csv_file, quoting=csv.QUOTE_ALL)
+        wr.writerow(checksums)
     print("successsss")
-    return checksums
 
 
 def get_chunk_boarder(content: string, current: int, content_size: int) -> int:

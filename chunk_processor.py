@@ -8,4 +8,5 @@ class ChunkedFile:
 
             content = f.read()
 
-            self.checksum_list = get_chunks_boarders(content, file_name, tmp_dir)
+            # self.checksum_list =\
+            get_chunks_boarders(content, file_name, tmp_dir)
