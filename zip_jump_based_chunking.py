@@ -2,6 +2,8 @@ import csv
 import string
 import zipfile
 
+import xxhash
+
 modulus = 2 ** 32
 
 window_size = 256
@@ -19,32 +21,25 @@ with open('resources/gear_table.csv') as file:
 
 def get_chunks_boarders(content: string, file_name):
     current = 0
-    # file_chunk_list = []
-    # tmp_dir = "/Users/andreysemenov/backup_tool/tmp/zero_part_zip/zero_part"
-
     content_size = len(content)
     i = file_name.find(".")
-    remote_file_name = file_name[0:i] + "_backup_folder"
+    remote_file_name = file_name[0:i] + "_backup"
     zip_tmp_dir = f"/Users/andreysemenov/backup_tool/tmp/{remote_file_name}.zip"
     i = 0
+
+    checksums = []
 
     with zipfile.ZipFile(zip_tmp_dir, "w", zipfile.ZIP_BZIP2) as zipf:
         while current < content_size:
             right_boarder = get_chunk_boarder(content, current, content_size)
-
-            # file_chunk_list.append(content[current:right_boarder - 1])
-
-            # fle = open(tmp_dir + f"{i}.txt", "w+")
-            # with fle:
-            #     fle.write(content[current:right_boarder - 1])
             chunk_content = content[current:right_boarder - 1]
-            # print(chunk_content)
-
+            checksums.append(xxhash.xxh32(chunk_content).hexdigest())
             zipf.writestr(f"{i}.txt", chunk_content)
             current = right_boarder
             i += 1
 
     print("successsss")
+    return checksums
 
 
 def get_chunk_boarder(content: string, current: int, content_size: int) -> int:
