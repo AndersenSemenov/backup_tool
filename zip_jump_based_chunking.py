@@ -1,4 +1,5 @@
 import csv
+import os.path
 import string
 import zipfile
 
@@ -8,23 +9,23 @@ modulus = 2 ** 32
 
 window_size = 256
 minimum_chunk_size = 512
-average_expected_chunk_size = 64_000
+average_expected_chunk_size = 16_000
 maximum_chunk_size = 2 * average_expected_chunk_size
 jump_length = average_expected_chunk_size // 2
 maskC = 0x590003570000
 maskJ = 0x590003560000
 
-with open('resources/gear_table.csv') as file:
-    gear_table_csv = csv.reader(file)
+with open('resources/gear_table.csv') as gear_table_file:
+    gear_table_csv = csv.reader(gear_table_file)
     gear_table = [int(s) for line in gear_table_csv for s in line]
 
 
-def get_chunks_boarders(content: string, file_name):
+def get_chunks_boarders(content: string, file_name, tmp_dir):
     current = 0
     content_size = len(content)
     i = file_name.find(".")
-    remote_file_name = file_name[0:i] + "_backup"
-    zip_tmp_dir = f"/Users/andreysemenov/backup_tool/tmp/{remote_file_name}.zip"
+    tmp_file_name = file_name[0:i] + "_backup.zip"
+    zip_tmp_dir = os.path.join(tmp_dir, tmp_file_name)
     i = 0
 
     checksums = []

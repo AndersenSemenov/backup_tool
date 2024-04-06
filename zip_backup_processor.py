@@ -9,27 +9,25 @@ from ssh_client import RemoteConnectionClient
 
 
 def zip_init_backup(hostname: string, username: string, private_key_file_path: string,
-                    local_path: string, remote_path: string):
+                    local_path: string, remote_path: string, tmp_dir: string):
     try:
         local_files = os.listdir(local_path)
         chunked_files = []
         for local_file in local_files:
-            chunked_files.append(ChunkedFile(file_path=os.path.join(local_path, local_file), file_name=local_file))
+            chunked_files.append(ChunkedFile(file_path=os.path.join(local_path, local_file), file_name=local_file, tmp_dir=tmp_dir))
 
         # tmp dir with zip of chunked files
-        chunked_files = os.listdir("/Users/andreysemenov/backup_tool/tmp")
+        chunked_files = os.listdir(tmp_dir)
 
         client = RemoteConnectionClient(hostname, username, private_key_file_path)
         j = 0
         for chunked_file in chunked_files:
-            # i = chunked_file.find(".")
-            # remote_folder_name = chunked_file[0:i] + "_folder"
-            # client.sftp_client.chdir(remote_path)
-            # client.sftp_client.mkdir(remote_folder_name)
-            # client.sftp_client.chdir(remote_folder_name)
+            i = chunked_file.find(".")
+            remote_folder_name = chunked_file[0:i] + "_folder"
+            client.sftp_client.mkdir(os.path.join(remote_path, remote_folder_name))
 
-            local_zip = os.path.join("/Users/andreysemenov/backup_tool/tmp", chunked_file)
-            remote_zip = os.path.join(remote_path, "new" + str(j) + ".zip")
+            local_zip = os.path.join(tmp_dir, chunked_file)
+            remote_zip = os.path.join(remote_path, remote_folder_name, "new" + str(j) + ".zip")
             print(f"localzip = {local_zip}; remotezip = {remote_zip}")
             client.sftp_client.put(local_zip, remote_zip)
             j += 1
