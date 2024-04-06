@@ -24,20 +24,21 @@ def get_chunks_boarders(content: string, file_name, tmp_dir):
     current = 0
     content_size = len(content)
     i = file_name.find(".")
+    local_tmp_folder = os.path.join(tmp_dir, file_name[0:i])
+    os.mkdir(local_tmp_folder)
     tmp_file_name = file_name[0:i] + "_backup.zip"
-    zip_tmp_dir = os.path.join(tmp_dir, tmp_file_name)
-    i = 0
+    zip_tmp_dir = os.path.join(local_tmp_folder, tmp_file_name)
 
     checksums = []
-
+    j = 0
     with zipfile.ZipFile(zip_tmp_dir, "w", zipfile.ZIP_BZIP2) as zipf:
         while current < content_size:
             right_boarder = get_chunk_boarder(content, current, content_size)
             chunk_content = content[current:right_boarder - 1]
             checksums.append(xxhash.xxh32(chunk_content).hexdigest())
-            zipf.writestr(f"{i}.txt", chunk_content)
+            zipf.writestr(f"{j}.txt", chunk_content)
             current = right_boarder
-            i += 1
+            j += 1
 
     print("successsss")
     return checksums

@@ -14,33 +14,32 @@ def zip_init_backup(hostname: string, username: string, private_key_file_path: s
         local_files = os.listdir(local_path)
         chunked_files = []
         for local_file in local_files:
-            chunked_files.append(ChunkedFile(file_path=os.path.join(local_path, local_file), file_name=local_file, tmp_dir=tmp_dir))
+            chunked_files.append(
+                ChunkedFile(file_path=os.path.join(local_path, local_file), file_name=local_file, tmp_dir=tmp_dir))
 
         # tmp dir with zip of chunked files
         chunked_files = os.listdir(tmp_dir)
+        print(chunked_files)
 
         client = RemoteConnectionClient(hostname, username, private_key_file_path)
-        j = 0
         for chunked_file in chunked_files:
-            i = chunked_file.find(".")
-            remote_folder_name = chunked_file[0:i] + "_folder"
-            client.sftp_client.mkdir(os.path.join(remote_path, remote_folder_name))
+            local_folder = os.path.join(tmp_dir, chunked_file)
+            remote_folder = os.path.join(remote_path, chunked_file)
+            client.sftp_client.mkdir(remote_folder)
 
-            local_zip = os.path.join(tmp_dir, chunked_file)
-            remote_zip = os.path.join(remote_path, remote_folder_name, "new" + str(j) + ".zip")
-            print(f"localzip = {local_zip}; remotezip = {remote_zip}")
-            client.sftp_client.put(local_zip, remote_zip)
-            j += 1
-
+            for backup_file_in_folder in os.listdir(local_folder):
+                lbf = os.path.join(local_folder, backup_file_in_folder)
+                rbf = os.path.join(remote_folder, backup_file_in_folder)
+                print(f"localfile = {lbf}; remotefolder = {rbf}")
+                client.sftp_client.put(lbf, rbf)
     except paramiko.AuthenticationException as auth_ex:
         print("Authentication failed:", str(auth_ex))
     except paramiko.SSHException as ssh_ex:
         print("SSH connection failed:", str(ssh_ex))
     except paramiko.SFTPError as sftp_ex:
         print("SFTP error:", str(sftp_ex))
-    except OSError as e:
-        a = e
-        print(e)
+    except Exception as e:
+        print(str(e))
     finally:
         client.sftp_client.close()
         client.ssh_client.close()
