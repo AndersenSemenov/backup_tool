@@ -20,7 +20,7 @@ with open('resources/gear_table.csv') as gear_table_file:
     gear_table = [int(s) for line in gear_table_csv for s in line]
 
 
-def get_chunks_boarders(content: string, file_name, tmp_dir):
+def init_chunks_and_checksums(content: string, file_name, tmp_dir):
     current = 0
     content_size = len(content)
     i = file_name.find(".")
@@ -40,10 +40,32 @@ def get_chunks_boarders(content: string, file_name, tmp_dir):
             current = right_boarder
             j += 1
 
-    with open(os.path.join(local_tmp_folder, file_name[0:i] + "_checksums"), 'w', newline='') as csv_file:
+    with open(os.path.join(local_tmp_folder, "checksums.csv"), 'w', newline='') as csv_file:
         wr = csv.writer(csv_file, quoting=csv.QUOTE_ALL)
         wr.writerow(checksums)
     print("successsss")
+    return checksums
+
+
+def calculate_checksums(content: string, file_name, tmp_dir):
+    current = 0
+    content_size = len(content)
+    i = file_name.find(".")
+    local_tmp_folder = os.path.join(tmp_dir, file_name[0:i])
+    os.mkdir(local_tmp_folder)
+
+    checksums = []
+    while current < content_size:
+        right_boarder = get_chunk_boarder(content, current, content_size)
+        chunk_content = content[current:right_boarder - 1]
+        checksums.append(xxhash.xxh32(chunk_content).hexdigest())
+        current = right_boarder
+
+    with open(os.path.join(local_tmp_folder, "checksums.csv"), 'w', newline='') as csv_file:
+        wr = csv.writer(csv_file, quoting=csv.QUOTE_ALL)
+        wr.writerow(checksums)
+    print("successsss")
+    return checksums
 
 
 def get_chunk_boarder(content: string, current: int, content_size: int) -> int:

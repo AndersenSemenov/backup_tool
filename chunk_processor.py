@@ -1,4 +1,4 @@
-from zip_jump_based_chunking import get_chunks_boarders
+from zip_jump_based_chunking import init_chunks_and_checksums
 
 
 class ChunkedFile:
@@ -8,5 +8,4 @@ class ChunkedFile:
 
             content = f.read()
 
-            # self.checksum_list =\
-            get_chunks_boarders(content, file_name, tmp_dir)
+            self.checksum_list = init_chunks_and_checksums(content, file_name, tmp_dir)
