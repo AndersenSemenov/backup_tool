@@ -62,7 +62,11 @@ def zip_incremental_backup_update(hostname: string, username: string, private_ke
     remote_hashes_dict = {}
 
     for remote_folder_name in client.sftp_client.listdir(remote_path):
-        checksum_file = os.path.join(remote_path, remote_folder_name, "v1", "checksums.csv")
+        stdin, stdout, stderr = client.ssh_client.exec_command(
+            f"cd {os.path.join(remote_path, remote_folder_name)} && ls -1 | wc -l")
+        version = stdout.read().decode('utf-8')
+        last_version_number = "v" + version[0:version.find("\n")]
+        checksum_file = os.path.join(remote_path, remote_folder_name, last_version_number, "checksums.csv")
         stdin, stdout, stderr = client.ssh_client.exec_command(f"cat {checksum_file}")
         fff = StringIO(stdout.read().decode('utf-8'))
         reader = csv.reader(fff, delimiter=',')
@@ -128,7 +132,8 @@ def zip_incremental_backup_update(hostname: string, username: string, private_ke
                 # get last version
                 # cnt number of folders + 1
 
-                stdin, stdout, stderr = client.ssh_client.exec_command("ls -1 | wc -l")
+                stdin, stdout, stderr = client.ssh_client.exec_command(
+                    f"cd {os.path.join(remote_path, local_file_name)} && ls -1 | wc -l")
                 version = stdout.read().decode('utf-8')
                 last_version_number = int(version[0:version.find("\n")]) + 1
                 remote_folder_with_version = os.path.join(remote_path, local_file_name, f"v{last_version_number}")
@@ -157,4 +162,4 @@ def zip_incremental_backup_update(hostname: string, username: string, private_ke
                 print(f"localfile = {lbf}; remotefolder = {rbf}")
                 client.sftp_client.put(lbf, rbf)
 
-    shutil.rmtree(tmp_dir)
+    # shutil.rmtree(tmp_dir)
