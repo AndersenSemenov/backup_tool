@@ -43,7 +43,6 @@ def init_chunks_and_checksums(content: string, file_name, tmp_dir):
     with open(os.path.join(local_tmp_folder, "checksums.csv"), 'w', newline='') as csv_file:
         wr = csv.writer(csv_file, quoting=csv.QUOTE_ALL)
         wr.writerow(checksums)
-    print("successsss")
     return checksums
 
 
@@ -64,7 +63,6 @@ def calculate_checksums(content: string, file_name, tmp_dir):
     with open(os.path.join(local_tmp_folder, "checksums.csv"), 'w', newline='') as csv_file:
         wr = csv.writer(csv_file, quoting=csv.QUOTE_ALL)
         wr.writerow(checksums)
-    print("successsss")
     return checksums
 
 
