@@ -162,4 +162,4 @@ def zip_incremental_backup_update(hostname: string, username: string, private_ke
                 print(f"localfile = {lbf}; remotefolder = {rbf}")
                 client.sftp_client.put(lbf, rbf)
 
-    # shutil.rmtree(tmp_dir)
+    shutil.rmtree(tmp_dir)
