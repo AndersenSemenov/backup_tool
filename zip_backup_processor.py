@@ -6,10 +6,11 @@ import zipfile
 from io import StringIO
 
 import paramiko
+import xxhash
 
 from chunk_processor import ChunkedFile
 from ssh_client import RemoteConnectionClient
-from zip_jump_based_chunking import calculate_checksums
+from zip_jump_based_chunking import get_chunk_boarder
 
 
 def zip_init_backup(hostname: string, username: string, private_key_file_path: string,
@@ -57,88 +58,103 @@ def zip_incremental_backup_update(hostname: string, username: string, private_ke
     local_files = os.listdir(local_path)
     os.mkdir(tmp_dir)
 
-    # DONE
-    # not zip of whole file, only calculate checksums here
-    # and only after comparison
-    local_hashes_dict = {}
-    for local_file in local_files:
-        with open(os.path.join(local_path, local_file)) as lf:
-            content = lf.read()
-            local_file_name = local_file[0:local_file.find(".")]
-            local_hashes_dict[local_file_name] = calculate_checksums(content, local_file, tmp_dir)
-
     client = RemoteConnectionClient(hostname, username, private_key_file_path)
     remote_hashes_dict = {}
 
-    # os.mkdir(os.path.join(tmp_dir, "local"))
     for remote_folder_name in client.sftp_client.listdir(remote_path):
         checksum_file = os.path.join(remote_path, remote_folder_name, "v1", "checksums.csv")
-        # VAR2 CHECKSUM VIA  CAT
         stdin, stdout, stderr = client.ssh_client.exec_command(f"cat {checksum_file}")
-        remote_hashes_dict[remote_folder_name] = stdout.read().decode('utf-8')
+        fff = StringIO(stdout.read().decode('utf-8'))
+        reader = csv.reader(fff, delimiter=',')
+        remote_hash_list = [row for row in reader][0]
+        remote_hashes_dict[remote_folder_name] = remote_hash_list
 
-    # print(f"local_hashes_dict - {local_hashes_dict}")
-    # print(f"remote_hashes_dict - {remote_hashes_dict}")
-
-    for pair in local_hashes_dict:
-        local_file_name
-        try:
-            local_file_name = pair
-        except ValueError:
-            print("error")
-        diff_chunks = []
-        added_chunks = []
-        deleted_chunks = []
-
-        local_hash_list = local_hashes_dict.get(local_file_name)
+    for local_file in local_files:
+        local_file_name = local_file[0:local_file.find(".")]
+        local_tmp_folder = os.path.join(tmp_dir, local_file_name)
 
         if local_file_name in remote_hashes_dict:
-            fff = StringIO(remote_hashes_dict[local_file_name])
-            reader = csv.reader(fff, delimiter=',')
-            remote_hash_list = [row for row in reader][0]
+            remote_hash_list = remote_hashes_dict[local_file_name]
+            j = 0
+            checksums = []
+            current = 0
 
-            print(f"FOR FILE {local_file_name}")
-            # print(f"remote hashes are {remote_hash_list}")
-            # print(f"local hashes are {local_hash_list}")
+            diff_chunks = {}
+            added_chunks = {}
+            deleted_chunks = {}
 
-            for i in range(min(len(local_hash_list), len(remote_hash_list))):
-                if local_hash_list[i] != remote_hash_list[i]:
-                    diff_chunks.append(i)
+            with open(os.path.join(local_path, local_file)) as lf:
+                content = lf.read()
+                content_size = len(content)
 
-            #     new chunks added or deleted, need to upload them to remote
-            #     added_chunks/deleted_chunks lists
-            if len(local_hash_list) > len(remote_hash_list):
-                for i in range(len(remote_hash_list), len(local_hash_list)):
-                    added_chunks.append(i)
-            elif len(remote_hash_list) > len(local_hash_list):
-                for i in range(len(local_hash_list), len(remote_hash_list)):
-                    deleted_chunks.append(i)
+                while current < content_size:
+                    right_boarder = get_chunk_boarder(content, current, content_size)
+                    chunk_content = content[current:right_boarder - 1]
+                    current_checksum = xxhash.xxh32(chunk_content).hexdigest()
+                    checksums.append(current_checksum)
 
-            print(f"diff_chunks - {diff_chunks}")
-            print(f"added_chunks - {added_chunks}")
-            print(f"deleted_chunks - {deleted_chunks}")
-            print()
+                    if j >= len(remote_hash_list):
+                        added_chunks[j] = chunk_content
 
-            if diff_chunks or added_chunks or deleted_chunks:
-                print(f"File in differs in chunks with nums - {diff_chunks}, "
-                      f"added chunks with nums - {added_chunks}, deleted chunks with nums - {deleted_chunks}")
+                    if current_checksum != remote_hash_list[j]:
+                        diff_chunks[j] = chunk_content
 
-                remote_folder_with_version = os.path.join(remote_path, local_file_name, "v2")
+                    current = right_boarder
+                    j += 1
+
+                # main thing in deleted chunking is to save index of deleted chunk
+                # no need to save deleted chunk content
+                while j < len(remote_hash_list):
+                    deleted_chunks[j] = ""
+                    j += 1
+
+            if not diff_chunks and not added_chunks and not deleted_chunks:
+                print("File is equal to remote copy, no need to update")
+            elif diff_chunks or added_chunks or deleted_chunks:
+                os.mkdir(local_tmp_folder)
+                print(f"file {local_file_name} diffs in {diff_chunks.keys()}")
+                zip_tmp_dir = os.path.join(local_tmp_folder, "new.zip")
+                with zipfile.ZipFile(zip_tmp_dir, "w", zipfile.ZIP_BZIP2) as zipf:
+                    for diff_chunk_key in diff_chunks.keys():
+                        zipf.writestr(f"{diff_chunk_key}.txt", diff_chunks.get(diff_chunk_key))
+                    for added_chunk_key in added_chunks.keys():
+                        zipf.writestr(f"{added_chunk_key}.txt", added_chunks.get(added_chunk_key))
+
+                with open(os.path.join(local_tmp_folder, "checksums.csv"), 'w', newline='') as csv_file:
+                    wr = csv.writer(csv_file, quoting=csv.QUOTE_ALL)
+                    wr.writerow(checksums)
+
+                local_tmp_folder = os.path.join(tmp_dir, local_file_name)
+                # get last version
+                # cnt number of folders + 1
+
+                stdin, stdout, stderr = client.ssh_client.exec_command("ls -1 | wc -l")
+                version = stdout.read().decode('utf-8')
+                last_version_number = int(version[0:version.find("\n")]) + 1
+                remote_folder_with_version = os.path.join(remote_path, local_file_name, f"v{last_version_number}")
                 client.sftp_client.mkdir(remote_folder_with_version)
 
-                zip_tmp_dir = os.path.join(tmp_dir)
-                with zipfile.ZipFile(zip_tmp_dir, "w", zipfile.ZIP_BZIP2) as zipf:
-                    for diff_chunk in diff_chunks:
-                        zipf.writestr(f"{diff_chunk}.txt", "chunk_content")
+                for backup_file_in_folder in os.listdir(local_tmp_folder):
+                    lbf = os.path.join(local_tmp_folder, backup_file_in_folder)
+                    rbf = os.path.join(remote_folder_with_version, backup_file_in_folder)
+                    print(f"localfile = {lbf}; remotefolder = {rbf}")
+                    client.sftp_client.put(lbf, rbf)
 
-                    for added_chunk in added_chunks:
-                        zipf.writestr(f"{added_chunk}.txt", "chunk_content")
+        else:
+            print("new file")
+            chunked_file = ChunkedFile(file_path=os.path.join(local_path, local_file), file_name=local_file,
+                                       tmp_dir=tmp_dir)
+            local_file_name = chunked_file.file_name[0:chunked_file.file_name.find(".")]
+            local_tmp_folder = os.path.join(tmp_dir, local_file_name)
+            remote_folder = os.path.join(remote_path, local_file_name)
+            client.sftp_client.mkdir(remote_folder)
+            remote_folder_with_version = os.path.join(remote_folder, "v1")
+            client.sftp_client.mkdir(remote_folder_with_version)
 
-                # TODO
-                # process deleted
-                # for deleted_chunk in deleted_chunks:
-                #     chunk_file_name = f"{deleted_chunk}" + ".txt"
-            else:
-                print("File is equal to remote copy")
+            for backup_file_in_folder in os.listdir(local_tmp_folder):
+                lbf = os.path.join(local_tmp_folder, backup_file_in_folder)
+                rbf = os.path.join(remote_folder_with_version, backup_file_in_folder)
+                print(f"localfile = {lbf}; remotefolder = {rbf}")
+                client.sftp_client.put(lbf, rbf)
 
     shutil.rmtree(tmp_dir)
