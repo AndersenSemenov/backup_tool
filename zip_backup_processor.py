@@ -10,7 +10,7 @@ import xxhash
 
 from chunk_processor import ChunkedFile
 from ssh_client import RemoteConnectionClient
-from zip_jump_based_chunking import get_chunk_boarder
+from zip_jump_based_chunking import get_right_boarder
 
 
 def zip_init_backup(hostname: string, username: string, private_key_file_path: string,
@@ -92,15 +92,14 @@ def zip_incremental_backup_update(hostname: string, username: string, private_ke
                 content_size = len(content)
 
                 while current < content_size:
-                    right_boarder = get_chunk_boarder(content, current, content_size)
-                    chunk_content = content[current:right_boarder - 1]
+                    right_boarder = get_right_boarder(content, current, content_size)
+                    chunk_content = content[current:right_boarder]
                     current_checksum = xxhash.xxh32(chunk_content).hexdigest()
                     checksums.append(current_checksum)
 
-                    if j >= len(remote_hash_list):
+                    if len(remote_hash_list) < j:
                         added_chunks[j] = chunk_content
-
-                    if current_checksum != remote_hash_list[j]:
+                    elif current_checksum != remote_hash_list[j]:
                         diff_chunks[j] = chunk_content
 
                     current = right_boarder
@@ -111,6 +110,9 @@ def zip_incremental_backup_update(hostname: string, username: string, private_ke
                 while j < len(remote_hash_list):
                     deleted_chunks[j] = ""
                     j += 1
+                print(f"FILE - {local_file_name}")
+                print(f"local - {checksums}")
+                print(f"remote - {remote_hash_list}")
 
             if not diff_chunks and not added_chunks and not deleted_chunks:
                 print("File is equal to remote copy, no need to update")
