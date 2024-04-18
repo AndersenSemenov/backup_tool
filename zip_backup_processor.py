@@ -53,6 +53,14 @@ def zip_init_backup(hostname: string, username: string, private_key_file_path: s
         client.ssh_client.close()
 
 
+def get_new_local_checksum_position(local_checksums, left_boarder, old_checksum_value):
+    for i in range(left_boarder, len(local_checksums)):
+        local_val = local_checksums[i]
+        if local_val == old_checksum_value:
+            return i
+    return -1
+
+
 def zip_incremental_backup_update(hostname: string, username: string, private_key_file_path: string,
                                   local_path: string, remote_path: string, tmp_dir: string):
     local_files = os.listdir(local_path)
@@ -70,70 +78,79 @@ def zip_incremental_backup_update(hostname: string, username: string, private_ke
         stdin, stdout, stderr = client.ssh_client.exec_command(f"cat {checksum_file}")
         fff = StringIO(stdout.read().decode('utf-8'))
         reader = csv.reader(fff, delimiter=',')
-        remote_hash_list = [row for row in reader][0]
-        remote_hashes_dict[remote_folder_name] = remote_hash_list
+        remote_checksums = [row for row in reader][0]
+        remote_hashes_dict[remote_folder_name] = remote_checksums
 
     for local_file in local_files:
         local_file_name = local_file[0:local_file.find(".")]
         local_tmp_folder = os.path.join(tmp_dir, local_file_name)
 
         if local_file_name in remote_hashes_dict:
-            remote_hash_list = remote_hashes_dict[local_file_name]
-            j = 0
-            checksums = []
-            current = 0
+            remote_checksums = remote_hashes_dict[local_file_name]
+            local_checksums = []
 
             diff_chunks = {}
-            added_chunks = {}
-            deleted_chunks = {}
 
             with open(os.path.join(local_path, local_file)) as lf:
                 content = lf.read()
                 content_size = len(content)
+                os.mkdir(local_tmp_folder)
 
+                j = 0
+                current = 0
                 while current < content_size:
                     right_boarder = get_right_boarder(content, current, content_size)
                     chunk_content = content[current:right_boarder]
-                    current_checksum = xxhash.xxh32(chunk_content).hexdigest()
-                    checksums.append(current_checksum)
-
-                    if len(remote_hash_list) < j:
-                        added_chunks[j] = chunk_content
-                    elif current_checksum != remote_hash_list[j]:
-                        diff_chunks[j] = chunk_content
-
+                    local_checksums.append(xxhash.xxh32(chunk_content).hexdigest())
                     current = right_boarder
                     j += 1
 
-                # main thing in deleted chunking is to save index of deleted chunk
-                # no need to save deleted chunk content
-                while j < len(remote_hash_list):
-                    deleted_chunks[j] = ""
-                    j += 1
                 print(f"FILE - {local_file_name}")
-                print(f"local - {checksums}")
-                print(f"remote - {remote_hash_list}")
+                print(f"local - {local_checksums}")
+                print(f"remote - {remote_checksums}")
 
-            if not diff_chunks and not added_chunks and not deleted_chunks:
+                # new data arrived
+                # maybe deleted dedup processing should be here too
+                if len(local_checksums) != len(remote_checksums):
+                    j = 0
+                    current = 0
+                    dedup_structure = []
+                    while current < content_size and j < len(remote_checksums) and j < len(local_checksums):
+                        right_boarder = get_right_boarder(content, current, content_size)
+                        chunk_content = content[current:right_boarder]
+
+                        new_left_local_pos = get_new_local_checksum_position(local_checksums, j, remote_checksums[j])
+                        if new_left_local_pos == -1:
+                            diff_chunks[j] = chunk_content
+                        elif local_checksums[j] != remote_checksums[j]:
+                            dedup_structure.append(DedupReference(new_left_local_pos, new_left_local_pos, "v1"))
+
+                        current = right_boarder
+                        j += 1
+
+                    if dedup_structure:
+                        with open(os.path.join(local_tmp_folder, "dedup_ref.csv"), 'w', newline='') as csv_file:
+                            wr = csv.writer(csv_file, quoting=csv.QUOTE_ALL)
+                            for dedup in dedup_structure:
+                                output_dedup = [dedup.left, dedup.right, dedup.version_name]
+                                wr.writerow(output_dedup)
+
+            if not diff_chunks and not dedup_structure:
                 print("File is equal to remote copy, no need to update")
-            elif diff_chunks or added_chunks or deleted_chunks:
-                os.mkdir(local_tmp_folder)
+            else:
                 print(f"file {local_file_name} diffs in {diff_chunks.keys()}")
                 zip_tmp_dir = os.path.join(local_tmp_folder, "new.zip")
                 with zipfile.ZipFile(zip_tmp_dir, "w", zipfile.ZIP_BZIP2) as zipf:
                     for diff_chunk_key in diff_chunks.keys():
                         zipf.writestr(f"{diff_chunk_key}.txt", diff_chunks.get(diff_chunk_key))
-                    for added_chunk_key in added_chunks.keys():
-                        zipf.writestr(f"{added_chunk_key}.txt", added_chunks.get(added_chunk_key))
 
                 with open(os.path.join(local_tmp_folder, "checksums.csv"), 'w', newline='') as csv_file:
                     wr = csv.writer(csv_file, quoting=csv.QUOTE_ALL)
-                    wr.writerow(checksums)
+                    wr.writerow(local_checksums)
 
                 local_tmp_folder = os.path.join(tmp_dir, local_file_name)
                 # get last version
                 # cnt number of folders + 1
-
                 stdin, stdout, stderr = client.ssh_client.exec_command(
                     f"cd {os.path.join(remote_path, local_file_name)} && ls -1 | wc -l")
                 version = stdout.read().decode('utf-8')
@@ -164,4 +181,11 @@ def zip_incremental_backup_update(hostname: string, username: string, private_ke
                 print(f"localfile = {lbf}; remotefolder = {rbf}")
                 client.sftp_client.put(lbf, rbf)
 
-    shutil.rmtree(tmp_dir)
+    # shutil.rmtree(tmp_dir)
+
+
+class DedupReference:
+    def __init__(self, left, right, version_name):
+        self.left = left
+        self.right = right
+        self.version_name = version_name
