@@ -31,13 +31,13 @@ jump_length_64kb = average_expected_chunk_size_64kb // 2
 maskC_64kb = 0x599813570000
 maskJ_64kb = 0x599813560000
 
-window_size = window_size_8kb
-minimum_chunk_size = minimum_chunk_size_8kb
-average_expected_chunk_size = average_expected_chunk_size_8kb
+window_size = window_size_16kb
+minimum_chunk_size = minimum_chunk_size_16kb
+average_expected_chunk_size = average_expected_chunk_size_16kb
 maximum_chunk_size = 2 * average_expected_chunk_size
 jump_length = average_expected_chunk_size // 2
-maskC = maskC_8kb
-maskJ = maskJ_8kb
+maskC = maskC_16kb
+maskJ = maskJ_16kb
 
 with open('resources/gear_table.csv') as gear_table_file:
     gear_table_csv = csv.reader(gear_table_file)

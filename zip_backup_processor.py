@@ -37,7 +37,6 @@ def zip_init_backup(hostname: string, username: string, private_key_file_path: s
             for backup_file_in_folder in os.listdir(local_folder):
                 lbf = os.path.join(local_folder, backup_file_in_folder)
                 rbf = os.path.join(remote_folder_with_version, backup_file_in_folder)
-                print(f"localfile = {lbf}; remotefolder = {rbf}")
                 client.sftp_client.put(lbf, rbf)
         shutil.rmtree(tmp_dir)
     except paramiko.AuthenticationException as auth_ex:
@@ -53,10 +52,10 @@ def zip_init_backup(hostname: string, username: string, private_key_file_path: s
         client.ssh_client.close()
 
 
-def get_new_local_checksum_position(local_checksums, left_boarder, old_checksum_value):
-    for i in range(left_boarder, len(local_checksums)):
-        local_val = local_checksums[i]
-        if local_val == old_checksum_value:
+def get_new_local_checksum_position(remote_checksums, local_checksum_value):
+    for i in range(len(remote_checksums)):
+        remote_val = remote_checksums[i]
+        if remote_val == local_checksum_value:
             return i
     return -1
 
@@ -109,31 +108,31 @@ def zip_incremental_backup_update(hostname: string, username: string, private_ke
                 print(f"local - {local_checksums}")
                 print(f"remote - {remote_checksums}")
 
-                # new data arrived
-                # maybe deleted dedup processing should be here too
-                if len(local_checksums) != len(remote_checksums):
-                    j = 0
-                    current = 0
-                    dedup_structure = []
-                    while current < content_size and j < len(remote_checksums) and j < len(local_checksums):
-                        right_boarder = get_right_boarder(content, current, content_size)
-                        chunk_content = content[current:right_boarder]
+                if local_file_name == 'mobi':
+                    print(5)
 
-                        new_left_local_pos = get_new_local_checksum_position(local_checksums, j, remote_checksums[j])
-                        if new_left_local_pos == -1:
-                            diff_chunks[j] = chunk_content
-                        elif local_checksums[j] != remote_checksums[j]:
-                            dedup_structure.append(DedupReference(new_left_local_pos, new_left_local_pos, "v1"))
+                dedup_structure = []
+                j = 0
+                current = 0
+                while current < content_size and j < len(remote_checksums) and j < len(local_checksums):
+                    right_boarder = get_right_boarder(content, current, content_size)
+                    chunk_content = content[current:right_boarder]
 
-                        current = right_boarder
-                        j += 1
+                    new_left_local_pos = get_new_local_checksum_position(remote_checksums, local_checksums[j])
+                    if new_left_local_pos == -1 and local_checksums[j] != remote_checksums[j]:
+                        diff_chunks[j] = chunk_content
+                    elif local_checksums[j] != remote_checksums[j]:
+                        dedup_structure.append(DedupReference(new_left_local_pos, new_left_local_pos, "v1"))
 
-                    if dedup_structure:
-                        with open(os.path.join(local_tmp_folder, "dedup_ref.csv"), 'w', newline='') as csv_file:
-                            wr = csv.writer(csv_file, quoting=csv.QUOTE_ALL)
-                            for dedup in dedup_structure:
-                                output_dedup = [dedup.left, dedup.right, dedup.version_name]
-                                wr.writerow(output_dedup)
+                    current = right_boarder
+                    j += 1
+
+                if dedup_structure:
+                    with open(os.path.join(local_tmp_folder, "dedup_ref.csv"), 'w', newline='') as csv_file:
+                        wr = csv.writer(csv_file, quoting=csv.QUOTE_ALL)
+                        for dedup in dedup_structure:
+                            output_dedup = [dedup.left, dedup.right, dedup.version_name]
+                            wr.writerow(output_dedup)
 
             if not diff_chunks and not dedup_structure:
                 print("File is equal to remote copy, no need to update")
@@ -178,10 +177,9 @@ def zip_incremental_backup_update(hostname: string, username: string, private_ke
             for backup_file_in_folder in os.listdir(local_tmp_folder):
                 lbf = os.path.join(local_tmp_folder, backup_file_in_folder)
                 rbf = os.path.join(remote_folder_with_version, backup_file_in_folder)
-                print(f"localfile = {lbf}; remotefolder = {rbf}")
                 client.sftp_client.put(lbf, rbf)
 
-    # shutil.rmtree(tmp_dir)
+    shutil.rmtree(tmp_dir)
 
 
 class DedupReference:
