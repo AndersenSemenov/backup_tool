@@ -50,7 +50,7 @@ def init_chunks_and_checksums(content: string, file_name, tmp_dir):
     i = file_name.find(".")
     local_tmp_folder = os.path.join(tmp_dir, file_name[0:i])
     os.mkdir(local_tmp_folder)
-    tmp_file_name = file_name[0:i] + "_backup.zip"
+    tmp_file_name = "archive.zip"
     zip_tmp_dir = os.path.join(local_tmp_folder, tmp_file_name)
 
     checksums = []

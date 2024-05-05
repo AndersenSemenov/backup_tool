@@ -146,24 +146,49 @@ def zip_incremental_backup_update(hostname: string, username: string, private_ke
                             print(
                                 f"left_val - {remote_checksums[new_left_local_pos]}, "
                                 f"right_val - {remote_checksums[right_dedup_boarder]}")
-                            dedup_structure.append(DedupReference(new_left_local_pos, right_dedup_boarder, version))
-                            boarder_j = right_dedup_boarder + 1
+                            dedup_structure.append(DedupReference(j, j + (right_dedup_boarder - new_left_local_pos),
+                                                                  new_left_local_pos, right_dedup_boarder, version))
+                            boarder_j = j + (right_dedup_boarder - new_left_local_pos) + 1
+
+                    current = right_boarder
+                    j += 1
+
+                while current < content_size and j < len(local_checksums):
+                    right_boarder = get_right_boarder(content, current, content_size)
+                    chunk_content = content[current:right_boarder]
+
+                    if j >= boarder_j:
+                        new_left_local_pos = get_new_local_checksum_position(remote_checksums, local_checksums[j])
+                        right_dedup_boarder = get_binary_search_right_dedup_boarder(local_checksums, remote_checksums,
+                                                                                    j, new_left_local_pos)
+
+                        if new_left_local_pos == -1:
+                            diff_chunks[j] = chunk_content
+                            boarder_j += 1
+                        else:
+                            print(
+                                f"left_val - {remote_checksums[new_left_local_pos]}, "
+                                f"right_val - {remote_checksums[right_dedup_boarder]}")
+                            dedup_structure.append(DedupReference(j, j + (right_dedup_boarder - new_left_local_pos),
+                                                                  new_left_local_pos, right_dedup_boarder, version))
+                            boarder_j = j + (right_dedup_boarder - new_left_local_pos) + 1
 
                     current = right_boarder
                     j += 1
 
             if dedup_structure:
-                with open(os.path.join(local_tmp_folder, "dedup_ref.csv"), 'w', newline='') as csv_file:
+                with open(os.path.join(local_tmp_folder, "deduplication.csv"), 'w', newline='') as csv_file:
                     wr = csv.writer(csv_file, quoting=csv.QUOTE_ALL)
                     for dedup in dedup_structure:
-                        output_dedup = [dedup.left, dedup.right, dedup.version_name]
+                        output_dedup = [dedup.left_local, dedup.right_local, dedup.left_remote, dedup.right_remote,
+                                        dedup.version_name]
                         wr.writerow(output_dedup)
 
             if not diff_chunks and not dedup_structure:
                 print("File is equal to remote copy, no need to update")
             else:
                 print(f"file {local_file_name} diffs in {diff_chunks.keys()}")
-                zip_tmp_dir = os.path.join(local_tmp_folder, "new.zip")
+                zip_tmp_dir = os.path.join(local_tmp_folder, "archive.zip")
                 with zipfile.ZipFile(zip_tmp_dir, "w", zipfile.ZIP_BZIP2) as zipf:
                     for diff_chunk_key in diff_chunks.keys():
                         zipf.writestr(f"{diff_chunk_key}.txt", diff_chunks.get(diff_chunk_key))
@@ -202,7 +227,11 @@ def zip_incremental_backup_update(hostname: string, username: string, private_ke
 
 
 class DedupReference:
-    def __init__(self, left, right, version_name):
-        self.left = left
-        self.right = right
+    def __init__(self, left_local, right_local,
+                 left_remote, right_remote,
+                 version_name):
+        self.left_local = left_local
+        self.right_local = right_local
+        self.left_remote = left_remote
+        self.right_remote = right_remote
         self.version_name = version_name
