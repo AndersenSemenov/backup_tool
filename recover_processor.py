@@ -24,7 +24,8 @@ def recover_file(hostname: string, username: string, private_key_file_path: stri
         while version_number > 0:
             # unzip
             with zipfile.ZipFile(
-                    os.path.join(tmp_dir, 'backup_data', tmp_local_file_folder, 'v' + str(version_number), 'new.zip'),
+                    os.path.join(tmp_dir, 'backup_data', tmp_local_file_folder, 'v' + str(version_number),
+                                 'archive.zip'),
                     'r') as zip_ref:
                 zip_ref.extractall(
                     os.path.join(os.path.join(tmp_dir, 'buffer', tmp_local_file_folder, 'v' + str(version_number))))

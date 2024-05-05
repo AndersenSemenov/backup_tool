@@ -152,6 +152,26 @@ def zip_incremental_backup_update(hostname: string, username: string, private_ke
                     current = right_boarder
                     j += 1
 
+                while current < content_size and j < len(local_checksums):
+                    right_boarder = get_right_boarder(content, current, content_size)
+                    chunk_content = content[current:right_boarder]
+                    new_left_local_pos = get_new_local_checksum_position(remote_checksums, local_checksums[j])
+                    right_dedup_boarder = get_binary_search_right_dedup_boarder(local_checksums, remote_checksums,
+                                                                                j, new_left_local_pos)
+
+                    if new_left_local_pos == -1:
+                        diff_chunks[j] = chunk_content
+                        boarder_j += 1
+                    else:
+                        print(
+                            f"left_val - {remote_checksums[new_left_local_pos]}, "
+                            f"right_val - {remote_checksums[right_dedup_boarder]}")
+                        dedup_structure.append(DedupReference(new_left_local_pos, right_dedup_boarder, version))
+                        boarder_j = right_dedup_boarder + 1
+
+                    current = right_boarder
+                    j += 1
+
             if dedup_structure:
                 with open(os.path.join(local_tmp_folder, "dedup_ref.csv"), 'w', newline='') as csv_file:
                     wr = csv.writer(csv_file, quoting=csv.QUOTE_ALL)
@@ -163,7 +183,7 @@ def zip_incremental_backup_update(hostname: string, username: string, private_ke
                 print("File is equal to remote copy, no need to update")
             else:
                 print(f"file {local_file_name} diffs in {diff_chunks.keys()}")
-                zip_tmp_dir = os.path.join(local_tmp_folder, "new.zip")
+                zip_tmp_dir = os.path.join(local_tmp_folder, "archive.zip")
                 with zipfile.ZipFile(zip_tmp_dir, "w", zipfile.ZIP_BZIP2) as zipf:
                     for diff_chunk_key in diff_chunks.keys():
                         zipf.writestr(f"{diff_chunk_key}.txt", diff_chunks.get(diff_chunk_key))
