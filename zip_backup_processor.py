@@ -176,6 +176,10 @@ def zip_incremental_backup_update(hostname: string, username: string, private_ke
                     current = right_boarder
                     j += 1
 
+                while j < len(remote_checksums):
+                    # mark as remained chunks as deleted
+                    a = 5
+
             if dedup_structure:
                 with open(os.path.join(local_tmp_folder, "deduplication.csv"), 'w', newline='') as csv_file:
                     wr = csv.writer(csv_file, quoting=csv.QUOTE_ALL)

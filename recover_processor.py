@@ -80,22 +80,30 @@ def recover_file(hostname: string, username: string, private_key_file_path: stri
         print(f'dedup_chunks_positions - {dedup_chunks_positions}')
 
         with open(os.path.join(tmp_dir, 'recover_data', tmp_local_file_folder + '.txt'), 'a') as rf:
-            range_val = max(len(chunks_positions), get_dedup_max(dedup_chunks_positions) + 1)
+            range_val = get_final_total_number_of_chunks(
+                os.path.join(tmp_dir, 'backup_data', tmp_local_file_folder, 'v' + str(last_version_number),
+                             'checksums.csv'))
             for chunk_number in range(range_val):
-                if chunk_number == 84:
-                    aaaa = 5
                 if chunk_number not in dedup_chunks_positions:
                     chunk_location_folder = 'v' + str(chunks_positions[str(chunk_number)])
                     chunk_path = os.path.join(tmp_dir, 'buffer', tmp_local_file_folder, chunk_location_folder,
                                               str(chunk_number) + '.txt')
                 else:
-                    chunk_location_folder = 'v' + str(
-                        chunks_positions[str(dedup_chunks_positions[chunk_number].version_number)])
+                    chunk_location_folder = 'v' + str(dedup_chunks_positions[chunk_number].version_number)
                     chunk_path = os.path.join(tmp_dir, 'buffer', tmp_local_file_folder, chunk_location_folder,
                                               str(dedup_chunks_positions[chunk_number].chunk_number) + '.txt')
                 rf.write(open(chunk_path).read())
 
                 # os.rmdir(os.path.join(tmp_dir, 'buffer', tmp_local_file_folder))
+
+
+def get_final_total_number_of_chunks(path):
+    with open(path) as checksums_file:
+        checksums = csv.reader(checksums_file)
+        total_number_of_chunks = 0
+        for row in checksums:
+            total_number_of_chunks += len(row)
+        return total_number_of_chunks
 
 
 def get_dedup_max(dedup_chunks_positions):
@@ -104,6 +112,7 @@ def get_dedup_max(dedup_chunks_positions):
         if key > current_max:
             current_max = key
     return current_max
+
 
 def find_dedup_version(version_number, dedup_chunk_number, dedup_all):
     while True:
