@@ -5,7 +5,7 @@ import zipfile
 
 import xxhash
 
-modulus = 2 ** 32
+modulus = 2**32
 
 window_size_8kb = 256
 minimum_chunk_size_8kb = 1_024
@@ -39,7 +39,7 @@ jump_length = average_expected_chunk_size // 2
 maskC = maskC_16kb
 maskJ = maskJ_16kb
 
-with open('resources/gear_table.csv') as gear_table_file:
+with open("resources/gear_table.csv") as gear_table_file:
     gear_table_csv = csv.reader(gear_table_file)
     gear_table = [int(s) for line in gear_table_csv for s in line]
 

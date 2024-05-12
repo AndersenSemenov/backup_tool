@@ -1,6 +1,6 @@
 import click
 
-from backup_processor import init_backup, incremental_backup_update
+from zip_backup_processor import zip_incremental_backup_update, zip_init_backup
 
 
 @click.group()
@@ -14,14 +14,13 @@ def cli():
 @click.option("--private-key-file-path")
 @click.option("--local-path")
 @click.option("--remote-path")
-def init_backup(remote_ip_address,
-                remote_user,
-                private_key_file_path,
-                local_path,
-                remote_path):
+def init_backup(
+        remote_ip_address, remote_user, private_key_file_path, local_path, remote_path
+):
     click.echo('Init backup')
-    init_backup(remote_ip_address, remote_user, private_key_file_path,
-                local_path, remote_path)
+    zip_init_backup(
+        remote_ip_address, remote_user, private_key_file_path, local_path, remote_path
+    )
 
 
 @cli.command()
@@ -30,15 +29,14 @@ def init_backup(remote_ip_address,
 @click.option("--private-key-file-path")
 @click.option("--local-path")
 @click.option("--remote-path")
-def incremental_backup(remote_ip_address,
-                       remote_user,
-                       private_key_file_path,
-                       local_path,
-                       remote_path):
-    click.echo('Incremental backup process')
-    incremental_backup_update(remote_ip_address, remote_user, private_key_file_path,
-                              local_path, remote_path)
+def incremental_backup(
+        remote_ip_address, remote_user, private_key_file_path, local_path, remote_path
+):
+    click.echo("Incremental backup process")
+    zip_incremental_backup_update(
+        remote_ip_address, remote_user, private_key_file_path, local_path, remote_path
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli()
