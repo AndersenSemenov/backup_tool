@@ -15,9 +15,9 @@ def cli():
 @click.option("--local-path")
 @click.option("--remote-path")
 def init_backup(
-        remote_ip_address, remote_user, private_key_file_path, local_path, remote_path
+    remote_ip_address, remote_user, private_key_file_path, local_path, remote_path
 ):
-    click.echo('Init backup')
+    click.echo("Init backup")
     zip_init_backup(
         remote_ip_address, remote_user, private_key_file_path, local_path, remote_path
     )
@@ -30,7 +30,7 @@ def init_backup(
 @click.option("--local-path")
 @click.option("--remote-path")
 def incremental_backup(
-        remote_ip_address, remote_user, private_key_file_path, local_path, remote_path
+    remote_ip_address, remote_user, private_key_file_path, local_path, remote_path
 ):
     click.echo("Incremental backup process")
     zip_incremental_backup_update(

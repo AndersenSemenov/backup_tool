@@ -5,7 +5,9 @@ import paramiko
 
 
 class RemoteConnectionClient:
-    def __init__(self, hostname: string, username: string, private_key_file_path: string):
+    def __init__(
+        self, hostname: string, username: string, private_key_file_path: string
+    ):
         ssh_client = paramiko.SSHClient()
         ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         private_key = paramiko.Ed25519Key.from_private_key_file(private_key_file_path)
@@ -20,6 +22,3 @@ class RemoteConnectionClient:
         remote_file_name = os.path.join(remote_path, file_name)
         self.sftp_client.put(local_file_name, remote_file_name, confirm=False)
         print(f"Uploaded {file_name}")
-
-
-
