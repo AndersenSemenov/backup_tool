@@ -14,12 +14,12 @@ from zip_jump_based_chunking import get_right_boarder
 
 
 def zip_init_backup(
-        hostname: string,
-        username: string,
-        private_key_file_path: string,
-        local_path: string,
-        remote_path: string,
-        tmp_dir: string
+    hostname: string,
+    username: string,
+    private_key_file_path: string,
+    local_path: string,
+    remote_path: string,
+    tmp_dir: string,
 ):
     try:
         local_files = os.listdir(local_path)
@@ -30,7 +30,7 @@ def zip_init_backup(
                 ChunkedFile(
                     file_path=os.path.join(local_path, local_file),
                     file_name=local_file,
-                    tmp_dir=tmp_dir
+                    tmp_dir=tmp_dir,
                 )
             )
 
@@ -72,10 +72,7 @@ def get_new_local_checksum_position(remote_checksums, local_checksum_value):
 
 
 def get_binary_search_right_dedup_boarder(
-        local_checksums,
-        remote_checksums,
-        local_left_pos,
-        remote_left_pos
+    local_checksums, remote_checksums, local_left_pos, remote_left_pos
 ):
     local_i, remote_i = local_left_pos, remote_left_pos
     while local_i < len(local_checksums) and remote_i < len(remote_checksums):
@@ -88,12 +85,12 @@ def get_binary_search_right_dedup_boarder(
 
 
 def zip_incremental_backup_update(
-        hostname: string,
-        username: string,
-        private_key_file_path: string,
-        local_path: string,
-        remote_path: string,
-        tmp_dir: string
+    hostname: string,
+    username: string,
+    private_key_file_path: string,
+    local_path: string,
+    remote_path: string,
+    tmp_dir: string,
 ):
     local_files = os.listdir(local_path)
     os.mkdir(tmp_dir)
@@ -117,7 +114,7 @@ def zip_incremental_backup_update(
         remote_hashes_dict[remote_folder_name] = remote_checksums
 
     for local_file in local_files:
-        local_file_name = local_file[0: local_file.find(".")]
+        local_file_name = local_file[0 : local_file.find(".")]
         local_tmp_folder = os.path.join(tmp_dir, local_file_name)
 
         # get last version
@@ -157,9 +154,9 @@ def zip_incremental_backup_update(
                 boarder_j = 0
                 current = 0
                 while (
-                        current < content_size
-                        and j < len(remote_checksums)
-                        and j < len(local_checksums)
+                    current < content_size
+                    and j < len(remote_checksums)
+                    and j < len(local_checksums)
                 ):
                     right_boarder = get_right_boarder(content, current, content_size)
                     chunk_content = content[current:right_boarder]
@@ -186,11 +183,11 @@ def zip_incremental_backup_update(
                                     j + (right_dedup_boarder - new_left_local_pos),
                                     new_left_local_pos,
                                     right_dedup_boarder,
-                                    version
+                                    version,
                                 )
                             )
                             boarder_j = (
-                                    j + (right_dedup_boarder - new_left_local_pos) + 1
+                                j + (right_dedup_boarder - new_left_local_pos) + 1
                             )
 
                     current = right_boarder
@@ -221,11 +218,12 @@ def zip_incremental_backup_update(
                                     j,
                                     j + (right_dedup_boarder - new_left_local_pos),
                                     new_left_local_pos,
-                                    right_dedup_boarder, version
+                                    right_dedup_boarder,
+                                    version,
                                 )
                             )
                             boarder_j = (
-                                    j + (right_dedup_boarder - new_left_local_pos) + 1
+                                j + (right_dedup_boarder - new_left_local_pos) + 1
                             )
 
                     current = right_boarder
@@ -233,7 +231,7 @@ def zip_incremental_backup_update(
 
             if dedup_structure:
                 with open(
-                        os.path.join(local_tmp_folder, "deduplication.csv"), "w", newline=""
+                    os.path.join(local_tmp_folder, "deduplication.csv"), "w", newline=""
                 ) as csv_file:
                     wr = csv.writer(csv_file, quoting=csv.QUOTE_ALL)
                     for dedup in dedup_structure:
@@ -258,7 +256,7 @@ def zip_incremental_backup_update(
                         )
 
                 with open(
-                        os.path.join(local_tmp_folder, "checksums.csv"), "w", newline=""
+                    os.path.join(local_tmp_folder, "checksums.csv"), "w", newline=""
                 ) as csv_file:
                     wr = csv.writer(csv_file, quoting=csv.QUOTE_ALL)
                     wr.writerow(local_checksums)
@@ -282,7 +280,7 @@ def zip_incremental_backup_update(
             chunked_file = ChunkedFile(
                 file_path=os.path.join(local_path, local_file),
                 file_name=local_file,
-                tmp_dir=tmp_dir
+                tmp_dir=tmp_dir,
             )
             local_file_name = chunked_file.file_name[
                 0 : chunked_file.file_name.find(".")
@@ -303,7 +301,7 @@ def zip_incremental_backup_update(
 
 class DedupReference:
     def __init__(
-            self, left_local, right_local, left_remote, right_remote, version_name
+        self, left_local, right_local, left_remote, right_remote, version_name
     ):
         self.left_local = left_local
         self.right_local = right_local

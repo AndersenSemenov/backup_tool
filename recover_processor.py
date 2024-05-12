@@ -44,7 +44,7 @@ def recover_file(
                     tmp_local_file_folder,
                     "v" + str(version_number),
                     "archive.zip",
-                    ),
+                ),
                 "r",
             ) as zip_ref:
                 zip_ref.extractall(
@@ -64,7 +64,8 @@ def recover_file(
                     os.path.join(
                         tmp_dir,
                         "buffer",
-                        tmp_local_file_folder, "v" + str(version_number)
+                        tmp_local_file_folder,
+                        "v" + str(version_number),
                     )
                 )
             ):
@@ -84,19 +85,19 @@ def recover_file(
                 "backup_data",
                 tmp_local_file_folder,
                 "v" + str(version_number),
-                "deduplication.csv"
+                "deduplication.csv",
             )
             if os.path.isfile(path_to_current_dedup):
                 # parse deduplication.csv
                 dedup_structure = []
                 with open(
-                        os.path.join(
-                            tmp_dir,
-                            "backup_data",
-                            tmp_local_file_folder,
-                            "v" + str(version_number),
-                            "deduplication.csv"
-                        )
+                    os.path.join(
+                        tmp_dir,
+                        "backup_data",
+                        tmp_local_file_folder,
+                        "v" + str(version_number),
+                        "deduplication.csv",
+                    )
                 ) as csv_file:
                     csv_reader = csv.reader(csv_file, delimiter=",")
                     for row in csv_reader:
@@ -106,7 +107,9 @@ def recover_file(
                                 int(row[1]),
                                 int(row[2]),
                                 int(row[3]),
-                                row[4]))
+                                row[4],
+                            )
+                        )
                 dedup_all[version_number] = dedup_structure
 
             version_number -= 1
@@ -118,7 +121,7 @@ def recover_file(
                 dedup_structure = dedup_all[version_number]
                 for dedup_element in dedup_structure:
                     for dedup_chunk_number in range(
-                            dedup_element.left_local, dedup_element.right_local + 1
+                        dedup_element.left_local, dedup_element.right_local + 1
                     ):
                         if dedup_chunk_number not in chunks_positions:
                             dedup_chunks_positions[dedup_chunk_number] = (
@@ -134,7 +137,7 @@ def recover_file(
         print(f"dedup_chunks_positions - {dedup_chunks_positions}")
 
         with open(
-                os.path.join(tmp_dir, "recover_data", tmp_local_file_folder + ".txt"), "a"
+            os.path.join(tmp_dir, "recover_data", tmp_local_file_folder + ".txt"), "a"
         ) as rf:
             range_val = get_final_total_number_of_chunks(
                 os.path.join(
@@ -142,7 +145,7 @@ def recover_file(
                     "backup_data",
                     tmp_local_file_folder,
                     "v" + str(last_version_number),
-                    "checksums.csv"
+                    "checksums.csv",
                 )
             )
             for chunk_number in range(range_val):
@@ -155,12 +158,18 @@ def recover_file(
                         "buffer",
                         tmp_local_file_folder,
                         chunk_location_folder,
-                        str(chunk_number) + ".txt"
+                        str(chunk_number) + ".txt",
                     )
                 else:
-                    chunk_location_folder = 'v' + str(dedup_chunks_positions[chunk_number].version_number)
-                    chunk_path = os.path.join(tmp_dir, 'buffer', tmp_local_file_folder, chunk_location_folder,
-                                              str(dedup_chunks_positions[chunk_number].chunk_number) + '.txt')
+                    chunk_location_folder = "v" + str(
+                        dedup_chunks_positions[chunk_number].version_number
+                    )
+                    chunk_path = os.path.join(
+                        tmp_dir, "buffer",
+                        tmp_local_file_folder,
+                        chunk_location_folder,
+                        str(dedup_chunks_positions[chunk_number].chunk_number) + ".txt"
+                    )
                 rf.write(open(chunk_path).read())
 
                 # os.rmdir(os.path.join(tmp_dir, 'buffer', tmp_local_file_folder))
@@ -196,7 +205,7 @@ def find_dedup_version(version_number, dedup_chunk_number, dedup_all):
                 ):
                     is_found = True
                     dedup_chunk_number = dedup_element.left_remote + (
-                            dedup_chunk_number - dedup_element.left_local
+                        dedup_chunk_number - dedup_element.left_local
                     )
                     break
 
