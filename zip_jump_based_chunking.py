@@ -66,7 +66,7 @@ def init_chunks_and_checksums(content: string, file_name, tmp_dir):
     print(f"number of chunks for file - {file_name} is - {len(checksums)}")
 
     with open(
-            os.path.join(local_tmp_folder, "checksums.csv"), "w", newline=""
+        os.path.join(local_tmp_folder, "checksums.csv"), "w", newline=""
     ) as csv_file:
         wr = csv.writer(csv_file, quoting=csv.QUOTE_ALL)
         wr.writerow(checksums)
@@ -88,7 +88,7 @@ def calculate_checksums(content: string, file_name, tmp_dir):
         current = right_boarder
 
     with open(
-       os.path.join(local_tmp_folder, "checksums.csv"), "w", newline=""
+        os.path.join(local_tmp_folder, "checksums.csv"), "w", newline=""
     ) as csv_file:
         wr = csv.writer(csv_file, quoting=csv.QUOTE_ALL)
         wr.writerow(checksums)

@@ -165,10 +165,11 @@ def recover_file(
                         dedup_chunks_positions[chunk_number].version_number
                     )
                     chunk_path = os.path.join(
-                        tmp_dir, "buffer",
+                        tmp_dir,
+                        "buffer",
                         tmp_local_file_folder,
                         chunk_location_folder,
-                        str(dedup_chunks_positions[chunk_number].chunk_number) + ".txt"
+                        str(dedup_chunks_positions[chunk_number].chunk_number) + ".txt",
                     )
                 rf.write(open(chunk_path).read())
 
