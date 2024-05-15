@@ -5,7 +5,7 @@ import zipfile
 
 import xxhash
 
-modulus = 2 ** 32
+modulus = 2**32
 
 window_size_8kb = 256
 minimum_chunk_size_8kb = 1_024
@@ -39,7 +39,7 @@ jump_length = average_expected_chunk_size // 2
 maskC = maskC_16kb
 maskJ = maskJ_16kb
 
-with open('resources/gear_table.csv') as gear_table_file:
+with open("resources/gear_table.csv") as gear_table_file:
     gear_table_csv = csv.reader(gear_table_file)
     gear_table = [int(s) for line in gear_table_csv for s in line]
 
@@ -65,7 +65,9 @@ def init_chunks_and_checksums(content: string, file_name, tmp_dir):
             j += 1
     print(f"number of chunks for file - {file_name} is - {len(checksums)}")
 
-    with open(os.path.join(local_tmp_folder, "checksums.csv"), 'w', newline='') as csv_file:
+    with open(
+        os.path.join(local_tmp_folder, "checksums.csv"), "w", newline=""
+    ) as csv_file:
         wr = csv.writer(csv_file, quoting=csv.QUOTE_ALL)
         wr.writerow(checksums)
     return checksums
@@ -81,11 +83,13 @@ def calculate_checksums(content: string, file_name, tmp_dir):
     checksums = []
     while current < content_size:
         right_boarder = get_right_boarder(content, current, content_size)
-        chunk_content = content[current:right_boarder - 1]
+        chunk_content = content[current : right_boarder - 1]
         checksums.append(xxhash.xxh32(chunk_content).hexdigest())
         current = right_boarder
 
-    with open(os.path.join(local_tmp_folder, "checksums.csv"), 'w', newline='') as csv_file:
+    with open(
+        os.path.join(local_tmp_folder, "checksums.csv"), "w", newline=""
+    ) as csv_file:
         wr = csv.writer(csv_file, quoting=csv.QUOTE_ALL)
         wr.writerow(checksums)
     return checksums
@@ -93,7 +97,10 @@ def calculate_checksums(content: string, file_name, tmp_dir):
 
 def get_right_boarder(content, current, content_size):
     right_boarder = get_chunk_boarder(content, current, content_size)
-    if right_boarder - current < minimum_chunk_size and len(content) < current + minimum_chunk_size:
+    if (
+        right_boarder - current < minimum_chunk_size
+        and len(content) < current + minimum_chunk_size
+    ):
         right_boarder = current + minimum_chunk_size - 1
     elif right_boarder - current > maximum_chunk_size:
         right_boarder = current + maximum_chunk_size - 1
