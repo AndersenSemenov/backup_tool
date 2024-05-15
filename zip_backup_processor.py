@@ -22,33 +22,30 @@ def zip_init_backup(
     tmp_dir: string,
 ):
     try:
-        local_files = os.listdir(local_path)
         os.mkdir(tmp_dir)
         chunked_files = []
-        for local_file in local_files:
-            chunked_files.append(
-                ChunkedFile(
-                    file_path=os.path.join(local_path, local_file),
-                    file_name=local_file,
-                    tmp_dir=tmp_dir,
-                )
-            )
+        recursive_folder(local_path, chunked_files, tmp_dir)
 
         chunked_files = os.listdir(tmp_dir)
         print(chunked_files)
 
         client = RemoteConnectionClient(hostname, username, private_key_file_path)
-        for chunked_file in chunked_files:
-            local_folder = os.path.join(tmp_dir, chunked_file)
-            remote_folder = os.path.join(remote_path, chunked_file)
-            client.sftp_client.mkdir(remote_folder)
-            remote_folder_with_version = os.path.join(remote_folder, "v1")
-            client.sftp_client.mkdir(remote_folder_with_version)
-
-            for backup_file_in_folder in os.listdir(local_folder):
-                lbf = os.path.join(local_folder, backup_file_in_folder)
-                rbf = os.path.join(remote_folder_with_version, backup_file_in_folder)
-                client.sftp_client.put(lbf, rbf)
+        for root, subdirs, files in os.walk(tmp_dir):
+            for subdir in subdirs:
+                if is_backup_file_dir(os.path.join(root, subdir)):
+                    relative_path = get_relative_root_path(tmp_dir, root)
+                    remote_folder = os.path.join(remote_path, relative_path, subdir)
+                    remote_folder_with_version = os.path.join(remote_folder, "v1")
+                    client.sftp_client.mkdir(remote_folder)
+                    client.sftp_client.mkdir(remote_folder_with_version)
+                    for backup_file_in_folder in os.listdir(os.path.join(root, subdir)):
+                        local_backup_file = os.path.join(root, subdir, backup_file_in_folder)
+                        remote_backup_file = os.path.join(remote_folder_with_version, backup_file_in_folder)
+                        client.sftp_client.put(local_backup_file, remote_backup_file)
+                else:
+                    relative_path = get_relative_root_path(tmp_dir, root)
+                    remote_folder = os.path.join(remote_path, relative_path, subdir)
+                    client.sftp_client.mkdir(remote_folder)
         shutil.rmtree(tmp_dir)
     except paramiko.AuthenticationException as auth_ex:
         print("Authentication failed:", str(auth_ex))
@@ -61,6 +58,29 @@ def zip_init_backup(
     finally:
         client.sftp_client.close()
         client.ssh_client.close()
+
+
+def recursive_folder(path, chunked_files, tmp_dir):
+    for root, subdirs, files in os.walk(path):
+        for file in files:
+            chunked_files.append(
+                ChunkedFile(
+                    file_path=os.path.join(root, file),
+                    file_name=file,
+                    tmp_dir=os.path.join(tmp_dir, get_relative_root_path(path, root))
+                )
+            )
+        for subdir in subdirs:
+            os.mkdir(os.path.join(tmp_dir, get_relative_root_path(path, root), subdir))
+
+
+def get_relative_root_path(path, root):
+    return root[len(path) + 1 :]
+
+
+def is_backup_file_dir(current_dir):
+    dir_content = os.listdir(current_dir)
+    return "archive.zip" in dir_content and "checksums.csv" in dir_content
 
 
 def get_new_local_checksum_position(remote_checksums, local_checksum_value):
