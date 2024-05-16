@@ -1,0 +1,8 @@
+INIT_VERSION_FOLDER_NAME = "v1"
+ZIP_ARCHIVE_NAME = "archive.zip"
+CHECKSUMS_FILE_NAME = "checksums.csv"
+DEDUPLICATION_FILE_NAME = "deduplication.csv"
+BACKUP_FOLDER_NAME = "backup_data"
+RECOVERED_DATA_FOLDER_NAME = "recover_data"
+BUFFER_FOLDER_NAME = "buffer"
+GEAR_ARRAY_LOCATION = "resources/gear_table.csv"

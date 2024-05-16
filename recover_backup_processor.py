@@ -3,37 +3,33 @@ import os
 import stat
 import string
 import zipfile
+import constants
 
+from incremental_backup_processor import DedupReference
 from ssh_client import RemoteConnectionClient
-from zip_backup_processor import DedupReference
 
 
 def recover_file(
     hostname: string,
     username: string,
     private_key_file_path: string,
-    local_path: string,
     remote_path: string,
     tmp_dir: string,
 ):
     client = RemoteConnectionClient(hostname, username, private_key_file_path)
     os.mkdir(tmp_dir)
-    os.mkdir(os.path.join(tmp_dir, "backup_data"))
-    os.mkdir(os.path.join(tmp_dir, "recover_data"))
-    os.mkdir(os.path.join(tmp_dir, "buffer"))
-    recursive_sftp_get(
-        client.sftp_client, remote_path, os.path.join(tmp_dir, "backup_data")
+    os.mkdir(os.path.join(tmp_dir, constants.BACKUP_FOLDER_NAME))
+    os.mkdir(os.path.join(tmp_dir, constants.RECOVERED_DATA_FOLDER_NAME))
+    os.mkdir(os.path.join(tmp_dir, constants.BUFFER_FOLDER_NAME))
+    recursive_get_remote_backup_data(
+        client.sftp_client, remote_path, os.path.join(tmp_dir, constants.BACKUP_FOLDER_NAME)
     )
 
-    for root, subdirs, files in os.walk(os.path.join(tmp_dir, "backup_data")):
+    for root, subdirs, files in os.walk(os.path.join(tmp_dir, constants.BACKUP_FOLDER_NAME)):
         for subdir in subdirs:
             if is_backup_file_folder(os.path.join(root, subdir)):
-                # os.mkdir(os.path.join(tmp_dir, "buffer", get_relative_root_path(os.path.join(tmp_dir, "backup_data"), root), subdir))
-                last_version_number = len(
-                    next(os.walk(os.path.join(tmp_dir, "backup_data", get_relative_root_path(os.path.join(tmp_dir, "backup_data"), root), subdir)))[
-                        1
-                    ]
-                )
+                last_version_number = len(next(os.walk(os.path.join(root, subdir)))[1])
+                backup_file_extension_name = subdir[subdir.find("_") + 1 : ]
 
                 chunks_positions = {}
                 version_number = last_version_number
@@ -41,12 +37,10 @@ def recover_file(
                     # unzip
                     with zipfile.ZipFile(
                             os.path.join(
-                                tmp_dir,
-                                "backup_data",
-                                get_relative_root_path(os.path.join(tmp_dir, "backup_data"), root),
+                                root,
                                 subdir,
                                 "v" + str(version_number),
-                                "archive.zip",
+                                constants.ZIP_ARCHIVE_NAME,
                             ),
                             "r",
                     ) as zip_ref:
@@ -54,8 +48,8 @@ def recover_file(
                             os.path.join(
                                 os.path.join(
                                     tmp_dir,
-                                    "buffer",
-                                    get_relative_root_path(os.path.join(tmp_dir, "backup_data"), root),
+                                    constants.BUFFER_FOLDER_NAME,
+                                    get_relative_root_path(os.path.join(tmp_dir, constants.BACKUP_FOLDER_NAME), root),
                                     subdir,
                                     "v" + str(version_number),
                                 )
@@ -65,13 +59,11 @@ def recover_file(
                     # iterate through extracted files and get chunk numbers
                     for backup_chunk in os.listdir(
                             os.path.join(
-                                os.path.join(
-                                    tmp_dir,
-                                    "buffer",
-                                    get_relative_root_path(os.path.join(tmp_dir, "backup_data"), root),
-                                    subdir,
-                                    "v" + str(version_number),
-                                )
+                                tmp_dir,
+                                constants.BUFFER_FOLDER_NAME,
+                                get_relative_root_path(os.path.join(tmp_dir, constants.BACKUP_FOLDER_NAME), root),
+                                subdir,
+                                "v" + str(version_number),
                             )
                     ):
                         backup_chunk_name = backup_chunk[0: backup_chunk.find(".")]
@@ -80,44 +72,39 @@ def recover_file(
 
                     version_number -= 1
 
-                    # deduplication process
+                # deduplication process
                 version_number = last_version_number
                 dedup_all = {}
                 while version_number > 0:
                     # check if deduplication.csv exists in current version
                     path_to_current_dedup = os.path.join(
-                        tmp_dir,
-                        "backup_data",
-                        get_relative_root_path(os.path.join(tmp_dir, "backup_data"), root),
+                        root,
                         subdir,
                         "v" + str(version_number),
-                        "deduplication.csv",
+                        constants.DEDUPLICATION_FILE_NAME,
                     )
                     if os.path.isfile(path_to_current_dedup):
                         # parse deduplication.csv
-                        dedup_structure = []
+                        deduplicated_chunks = []
                         with open(
                                 os.path.join(
-                                    tmp_dir,
-                                    "backup_data",
-                                    get_relative_root_path(os.path.join(tmp_dir, "backup_data"), root),
+                                    root,
                                     subdir,
                                     "v" + str(version_number),
-                                    "deduplication.csv",
+                                    constants.DEDUPLICATION_FILE_NAME,
                                 )
                         ) as csv_file:
                             csv_reader = csv.reader(csv_file, delimiter=",")
                             for row in csv_reader:
-                                dedup_structure.append(
+                                deduplicated_chunks.append(
                                     DedupReference(
                                         int(row[0]),
                                         int(row[1]),
                                         int(row[2]),
                                         int(row[3]),
-                                        row[4],
                                     )
                                 )
-                        dedup_all[version_number] = dedup_structure
+                        dedup_all[version_number] = deduplicated_chunks
 
                     version_number -= 1
 
@@ -144,19 +131,18 @@ def recover_file(
                 print(f"dedup_chunks_positions - {dedup_chunks_positions}")
 
                 with open(
-                        os.path.join(tmp_dir,
-                                     "recover_data",
-                                     get_relative_root_path(os.path.join(tmp_dir, "backup_data"), root),
-                                     subdir + ".txt"), "a"
+                        os.path.join(
+                            tmp_dir,
+                            constants.RECOVERED_DATA_FOLDER_NAME,
+                            get_relative_root_path(os.path.join(tmp_dir, constants.BACKUP_FOLDER_NAME), root),
+                            subdir[0 : subdir.find("_")] + "." + backup_file_extension_name), "a"
                 ) as rf:
                     range_val = get_final_total_number_of_chunks(
                         os.path.join(
-                            tmp_dir,
-                            "backup_data",
-                            get_relative_root_path(os.path.join(tmp_dir, "backup_data"), root),
+                            root,
                             subdir,
                             "v" + str(last_version_number),
-                            "checksums.csv",
+                            constants.CHECKSUMS_FILE_NAME,
                         )
                     )
                     for chunk_number in range(range_val):
@@ -166,11 +152,11 @@ def recover_file(
                             )
                             chunk_path = os.path.join(
                                 tmp_dir,
-                                "buffer",
-                                get_relative_root_path(os.path.join(tmp_dir, "backup_data"), root),
+                                constants.BUFFER_FOLDER_NAME,
+                                get_relative_root_path(os.path.join(tmp_dir, constants.BACKUP_FOLDER_NAME), root),
                                 subdir,
                                 chunk_location_folder,
-                                str(chunk_number) + ".txt",
+                                str(chunk_number) + "." + backup_file_extension_name,
                             )
                         else:
                             chunk_location_folder = "v" + str(
@@ -178,18 +164,18 @@ def recover_file(
                             )
                             chunk_path = os.path.join(
                                 tmp_dir,
-                                "buffer",
-                                get_relative_root_path(os.path.join(tmp_dir, "backup_data"), root),
+                                constants.BUFFER_FOLDER_NAME,
+                                get_relative_root_path(os.path.join(tmp_dir, constants.BACKUP_FOLDER_NAME), root),
                                 subdir,
                                 chunk_location_folder,
-                                str(dedup_chunks_positions[chunk_number].chunk_number) + ".txt",
+                                str(dedup_chunks_positions[chunk_number].chunk_number) + "." + backup_file_extension_name,
                             )
                         rf.write(open(chunk_path).read())
 
                 # os.rmdir(os.path.join(tmp_dir, 'buffer', tmp_local_file_folder))
-            elif not os.path.exists(os.path.join(tmp_dir, "buffer", get_relative_root_path(os.path.join(tmp_dir, "backup_data"), root), subdir)):
-                os.mkdir(os.path.join(tmp_dir, "buffer", get_relative_root_path(os.path.join(tmp_dir, "backup_data"), root), subdir))
-                os.mkdir(os.path.join(tmp_dir, "recover_data", get_relative_root_path(os.path.join(tmp_dir, "backup_data"), root), subdir))
+            elif not os.path.exists(os.path.join(tmp_dir, constants.BUFFER_FOLDER_NAME, get_relative_root_path(os.path.join(tmp_dir, constants.BACKUP_FOLDER_NAME), root), subdir)):
+                os.mkdir(os.path.join(tmp_dir, constants.BUFFER_FOLDER_NAME, get_relative_root_path(os.path.join(tmp_dir, constants.BACKUP_FOLDER_NAME), root), subdir))
+                os.mkdir(os.path.join(tmp_dir, constants.RECOVERED_DATA_FOLDER_NAME, get_relative_root_path(os.path.join(tmp_dir, constants.BACKUP_FOLDER_NAME), root), subdir))
 
 
 def get_final_total_number_of_chunks(path):
@@ -234,24 +220,25 @@ def find_dedup_version(version_number, dedup_chunk_number, dedup_all):
         version_number -= 1
 
 
-def recursive_sftp_get(sftp, remote_path, local_path):
+def recursive_get_remote_backup_data(sftp, remote_path, local_path):
     for item in sftp.listdir_attr(remote_path):
         remote_item = os.path.join(remote_path, item.filename)
         local_item = os.path.join(local_path, item.filename)
 
         if stat.S_ISDIR(item.st_mode):
             os.makedirs(local_item, exist_ok=True)
-            recursive_sftp_get(sftp, remote_item, local_item)
+            recursive_get_remote_backup_data(sftp, remote_item, local_item)
         else:
             sftp.get(remote_item, local_item)
 
 
 def is_backup_file_folder(path):
-    return "v1" in os.listdir(path)
+    return constants.INIT_VERSION_FOLDER_NAME in os.listdir(path)
 
 
 def get_relative_root_path(path, root):
     return root[len(path) + 1:]
+
 
 class RecoverPair:
     def __init__(self, version_number, chunk_number):
