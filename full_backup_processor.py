@@ -107,7 +107,7 @@ def init_chunks_and_checksums_files(content: string, file_name, tmp_dir):
     with zipfile.ZipFile(
         os.path.join(local_tmp_folder, constants.ZIP_ARCHIVE_NAME),
         "w",
-        zipfile.ZIP_BZIP2
+        zipfile.ZIP_BZIP2,
     ) as zipf:
         while current < content_size:
             right_boarder = get_right_boarder(content, current, content_size)
