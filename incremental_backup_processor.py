@@ -34,7 +34,7 @@ def process_incremental_backup(
             local_file_name = (
                 local_file[0:index_of_file_extension]
                 + "_"
-                + local_file[index_of_file_extension + 1:]
+                + local_file[index_of_file_extension + 1 :]
             )
             local_tmp_folder = os.path.join(
                 tmp_dir, get_relative_root_path(local_path, root), local_file_name
@@ -197,7 +197,7 @@ def process_incremental_backup(
                             remote_path,
                             get_relative_root_path(local_path, root),
                             local_file_name,
-                            f"v{last_version_number}"
+                            f"v{last_version_number}",
                         )
                         client.sftp_client.mkdir(remote_folder_with_version)
 
@@ -223,16 +223,26 @@ def process_incremental_backup(
                     tmp_dir=tmp_dir,
                 )
 
-                remote_folder = os.path.join(remote_path, get_relative_root_path(local_path, root), local_file_name)
+                remote_folder = os.path.join(
+                    remote_path,
+                    get_relative_root_path(local_path, root),
+                    local_file_name,
+                )
                 remote_folder_with_version = os.path.join(
-                    remote_path, get_relative_root_path(local_path, root), local_file_name,
-                    constants.INIT_VERSION_FOLDER_NAME
+                    remote_path,
+                    get_relative_root_path(local_path, root),
+                    local_file_name,
+                    constants.INIT_VERSION_FOLDER_NAME,
                 )
                 client.sftp_client.mkdir(remote_folder)
                 client.sftp_client.mkdir(remote_folder_with_version)
                 for backup_file_in_folder in os.listdir(os.path.join(root, subdir)):
-                    local_backup_file = os.path.join(root, subdir, backup_file_in_folder)
-                    remote_backup_file = os.path.join(remote_folder_with_version, backup_file_in_folder)
+                    local_backup_file = os.path.join(
+                        root, subdir, backup_file_in_folder
+                    )
+                    remote_backup_file = os.path.join(
+                        remote_folder_with_version, backup_file_in_folder
+                    )
                     client.sftp_client.put(local_backup_file, remote_backup_file)
 
         for subdir in subdirs:

@@ -80,8 +80,8 @@ def get_relative_root_path(path, root):
 def is_backup_file_dir(current_dir):
     dir_content = os.listdir(current_dir)
     return (
-            constants.ZIP_ARCHIVE_NAME in dir_content
-            and constants.CHECKSUMS_FILE_NAME in dir_content
+        constants.ZIP_ARCHIVE_NAME in dir_content
+        and constants.CHECKSUMS_FILE_NAME in dir_content
     )
 
 
@@ -96,9 +96,9 @@ def init_chunks_and_checksums_files(content: string, file_name, tmp_dir):
     index_of_file_extension = file_name.find(".")
     local_tmp_folder = os.path.join(
         tmp_dir,
-        file_name[0 : index_of_file_extension]
+        file_name[0:index_of_file_extension]
         + "_"
-        + file_name[index_of_file_extension + 1 : ]
+        + file_name[index_of_file_extension + 1 :],
     )
     os.mkdir(local_tmp_folder)
 
@@ -106,8 +106,8 @@ def init_chunks_and_checksums_files(content: string, file_name, tmp_dir):
     j = 0
     with zipfile.ZipFile(
         os.path.join(local_tmp_folder, constants.ZIP_ARCHIVE_NAME),
-            "w",
-            zipfile.ZIP_BZIP2
+        "w",
+        zipfile.ZIP_BZIP2
     ) as zipf:
         while current < content_size:
             right_boarder = get_right_boarder(content, current, content_size)

@@ -24,7 +24,7 @@ def recover_file(
     recursive_get_remote_backup_data(
         client.sftp_client,
         remote_path,
-        os.path.join(tmp_dir, constants.BACKUP_FOLDER_NAME)
+        os.path.join(tmp_dir, constants.BACKUP_FOLDER_NAME),
     )
 
     for root, subdirs, files in os.walk(
@@ -53,8 +53,7 @@ def recover_file(
                                 tmp_dir,
                                 constants.BUFFER_FOLDER_NAME,
                                 get_relative_root_path(
-                                    os.path.join(
-                                        tmp_dir, constants.BACKUP_FOLDER_NAME),
+                                    os.path.join(tmp_dir, constants.BACKUP_FOLDER_NAME),
                                     root,
                                 ),
                                 subdir,
@@ -68,16 +67,14 @@ def recover_file(
                             tmp_dir,
                             constants.BUFFER_FOLDER_NAME,
                             get_relative_root_path(
-                                os.path.join(
-                                    tmp_dir, constants.BACKUP_FOLDER_NAME
-                                ),
+                                os.path.join(tmp_dir, constants.BACKUP_FOLDER_NAME),
                                 root,
                             ),
                             subdir,
                             "v" + str(version_number),
                         )
                     ):
-                        backup_chunk_name = backup_chunk[0: backup_chunk.find(".")]
+                        backup_chunk_name = backup_chunk[0 : backup_chunk.find(".")]
                         if backup_chunk_name not in chunks_positions:
                             chunks_positions[backup_chunk_name] = version_number
 
@@ -134,8 +131,8 @@ def recover_file(
                                             version_number - 1,
                                             dedup_element.left_remote
                                             + (
-                                                    dedup_chunk_number
-                                                    - dedup_element.left_local
+                                                dedup_chunk_number
+                                                - dedup_element.left_local
                                             ),
                                             dedup_all,
                                         )
@@ -200,13 +197,14 @@ def recover_file(
 
                 # os.rmdir(os.path.join(tmp_dir, 'buffer', tmp_local_file_folder))
             elif not os.path.exists(
-                    os.path.join(
-                        tmp_dir,
-                        constants.BUFFER_FOLDER_NAME,
-                        get_relative_root_path(
-                            os.path.join(tmp_dir, constants.BACKUP_FOLDER_NAME),root),
-                        subdir,
-                    )
+                os.path.join(
+                    tmp_dir,
+                    constants.BUFFER_FOLDER_NAME,
+                    get_relative_root_path(
+                        os.path.join(tmp_dir, constants.BACKUP_FOLDER_NAME), root
+                    ),
+                    subdir,
+                )
             ):
                 os.mkdir(
                     os.path.join(
