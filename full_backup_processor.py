@@ -30,12 +30,18 @@ def process_full_backup(
                 if is_backup_file_dir(os.path.join(root, subdir)):
                     relative_path = get_relative_root_path(tmp_dir, root)
                     remote_folder = os.path.join(remote_path, relative_path, subdir)
-                    remote_folder_with_version = os.path.join(remote_folder, constants.INIT_VERSION_FOLDER_NAME)
+                    remote_folder_with_version = os.path.join(
+                        remote_folder, constants.INIT_VERSION_FOLDER_NAME
+                    )
                     client.sftp_client.mkdir(remote_folder)
                     client.sftp_client.mkdir(remote_folder_with_version)
                     for backup_file_in_folder in os.listdir(os.path.join(root, subdir)):
-                        local_backup_file = os.path.join(root, subdir, backup_file_in_folder)
-                        remote_backup_file = os.path.join(remote_folder_with_version, backup_file_in_folder)
+                        local_backup_file = os.path.join(
+                            root, subdir, backup_file_in_folder
+                        )
+                        remote_backup_file = os.path.join(
+                            remote_folder_with_version, backup_file_in_folder
+                        )
                         client.sftp_client.put(local_backup_file, remote_backup_file)
                 else:
                     relative_path = get_relative_root_path(tmp_dir, root)
@@ -73,7 +79,10 @@ def get_relative_root_path(path, root):
 
 def is_backup_file_dir(current_dir):
     dir_content = os.listdir(current_dir)
-    return constants.ZIP_ARCHIVE_NAME in dir_content and constants.CHECKSUMS_FILE_NAME in dir_content
+    return (
+            constants.ZIP_ARCHIVE_NAME in dir_content
+            and constants.CHECKSUMS_FILE_NAME in dir_content
+    )
 
 
 def create_chunked_file(file_path, file_name, tmp_dir):
@@ -87,19 +96,26 @@ def init_chunks_and_checksums_files(content: string, file_name, tmp_dir):
     index_of_file_extension = file_name.find(".")
     local_tmp_folder = os.path.join(
         tmp_dir,
-        file_name[0 : index_of_file_extension]) + "_" + file_name[index_of_file_extension + 1 : ]
+        file_name[0 : index_of_file_extension]
+        + "_"
+        + file_name[index_of_file_extension + 1 : ]
+    )
     os.mkdir(local_tmp_folder)
 
     checksums = []
     j = 0
     with zipfile.ZipFile(
-            os.path.join(local_tmp_folder, constants.ZIP_ARCHIVE_NAME), "w", zipfile.ZIP_BZIP2
+        os.path.join(local_tmp_folder, constants.ZIP_ARCHIVE_NAME),
+            "w",
+            zipfile.ZIP_BZIP2
     ) as zipf:
         while current < content_size:
             right_boarder = get_right_boarder(content, current, content_size)
             chunk_content = content[current:right_boarder]
             checksums.append(xxhash.xxh32(chunk_content).hexdigest())
-            zipf.writestr(f"{j}.{file_name[index_of_file_extension + 1 : ]}", chunk_content)
+            zipf.writestr(
+                f"{j}.{file_name[index_of_file_extension + 1 : ]}", chunk_content
+            )
             current = right_boarder
             j += 1
     print(f"number of chunks for file - {file_name} is - {len(checksums)}")
