@@ -1,9 +1,6 @@
 import csv
-import os.path
 import string
-import zipfile
-
-import xxhash
+import constants
 
 modulus = 2**32
 
@@ -39,60 +36,9 @@ jump_length = average_expected_chunk_size // 2
 maskC = maskC_16kb
 maskJ = maskJ_16kb
 
-with open("resources/gear_table.csv") as gear_table_file:
-    gear_table_csv = csv.reader(gear_table_file)
-    gear_table = [int(s) for line in gear_table_csv for s in line]
-
-
-def init_chunks_and_checksums(content: string, file_name, tmp_dir):
-    current = 0
-    content_size = len(content)
-    i = file_name.find(".")
-    local_tmp_folder = os.path.join(tmp_dir, file_name[0:i])
-    os.mkdir(local_tmp_folder)
-    tmp_file_name = "archive.zip"
-    zip_tmp_dir = os.path.join(local_tmp_folder, tmp_file_name)
-
-    checksums = []
-    j = 0
-    with zipfile.ZipFile(zip_tmp_dir, "w", zipfile.ZIP_BZIP2) as zipf:
-        while current < content_size:
-            right_boarder = get_right_boarder(content, current, content_size)
-            chunk_content = content[current:right_boarder]
-            checksums.append(xxhash.xxh32(chunk_content).hexdigest())
-            zipf.writestr(f"{j}.txt", chunk_content)
-            current = right_boarder
-            j += 1
-    print(f"number of chunks for file - {file_name} is - {len(checksums)}")
-
-    with open(
-        os.path.join(local_tmp_folder, "checksums.csv"), "w", newline=""
-    ) as csv_file:
-        wr = csv.writer(csv_file, quoting=csv.QUOTE_ALL)
-        wr.writerow(checksums)
-    return checksums
-
-
-def calculate_checksums(content: string, file_name, tmp_dir):
-    current = 0
-    content_size = len(content)
-    i = file_name.find(".")
-    local_tmp_folder = os.path.join(tmp_dir, file_name[0:i])
-    os.mkdir(local_tmp_folder)
-
-    checksums = []
-    while current < content_size:
-        right_boarder = get_right_boarder(content, current, content_size)
-        chunk_content = content[current : right_boarder - 1]
-        checksums.append(xxhash.xxh32(chunk_content).hexdigest())
-        current = right_boarder
-
-    with open(
-        os.path.join(local_tmp_folder, "checksums.csv"), "w", newline=""
-    ) as csv_file:
-        wr = csv.writer(csv_file, quoting=csv.QUOTE_ALL)
-        wr.writerow(checksums)
-    return checksums
+with open(constants.GEAR_ARRAY_LOCATION) as gear_array_file:
+    gear_array_csv = csv.reader(gear_array_file)
+    gear_array = [int(s) for line in gear_array_csv for s in line]
 
 
 def get_right_boarder(content, current, content_size):
@@ -133,6 +79,6 @@ def get_chunk_boarder(content: string, current: int, content_size: int) -> int:
 
 def gear_consume(fingerprint, current_byte, curr_window_size) -> int:
     if curr_window_size < window_size:
-        return (fingerprint + gear_table[current_byte]) % modulus
+        return (fingerprint + gear_array[current_byte]) % modulus
     else:
-        return ((fingerprint << 1) + gear_table[current_byte]) % modulus
+        return ((fingerprint << 1) + gear_array[current_byte]) % modulus

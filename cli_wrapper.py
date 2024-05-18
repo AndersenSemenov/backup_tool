@@ -1,7 +1,5 @@
 import click
 
-from zip_backup_processor import zip_incremental_backup_update, zip_init_backup
-
 
 @click.group()
 def cli():
@@ -18,9 +16,9 @@ def init_backup(
     remote_ip_address, remote_user, private_key_file_path, local_path, remote_path
 ):
     click.echo("Init backup")
-    zip_init_backup(
-        remote_ip_address, remote_user, private_key_file_path, local_path, remote_path
-    )
+    # zip_init_backup(
+    #     remote_ip_address, remote_user, private_key_file_path, local_path, remote_path
+    # )
 
 
 @cli.command()
@@ -33,9 +31,9 @@ def incremental_backup(
     remote_ip_address, remote_user, private_key_file_path, local_path, remote_path
 ):
     click.echo("Incremental backup process")
-    zip_incremental_backup_update(
-        remote_ip_address, remote_user, private_key_file_path, local_path, remote_path
-    )
+    # zip_incremental_backup_update(
+    #     remote_ip_address, remote_user, private_key_file_path, local_path, remote_path
+    # )
 
 
 if __name__ == "__main__":
