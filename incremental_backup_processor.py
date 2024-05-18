@@ -40,13 +40,13 @@ def process_incremental_backup(
                 tmp_dir, get_relative_root_path(local_path, root), local_file_name
             )
 
-            _, stdout, _ = client.ssh_client.exec_command(
-                f"cd {os.path.join(remote_path, get_relative_root_path(local_path, root), local_file_name)} && ls -1 | wc -l"
-            )
-            version = stdout.read().decode("utf-8")
-            last_version_number = int(version[0 : version.find("\n")]) + 1
-
             if local_file_name in remote_hashes_dict:
+                _, stdout, _ = client.ssh_client.exec_command(
+                    f"cd {os.path.join(remote_path, get_relative_root_path(local_path, root), local_file_name)} && ls -1 | wc -l"
+                )
+                version = stdout.read().decode("utf-8")
+                last_version_number = int(version[0: version.find("\n")]) + 1
+
                 remote_checksums = remote_hashes_dict[local_file_name]
                 local_checksums = []
 
@@ -218,9 +218,9 @@ def process_incremental_backup(
             else:
                 print("new file")
                 create_chunked_file(
-                    file_path=os.path.join(root, subdir),
-                    file_name=subdir,
-                    tmp_dir=tmp_dir,
+                    file_path=os.path.join(root, local_file),
+                    file_name=local_file,
+                    tmp_dir=os.path.join(tmp_dir, get_relative_root_path(local_path, root)),
                 )
 
                 remote_folder = os.path.join(
@@ -236,9 +236,9 @@ def process_incremental_backup(
                 )
                 client.sftp_client.mkdir(remote_folder)
                 client.sftp_client.mkdir(remote_folder_with_version)
-                for backup_file_in_folder in os.listdir(os.path.join(root, subdir)):
+                for backup_file_in_folder in os.listdir(local_tmp_folder):
                     local_backup_file = os.path.join(
-                        root, subdir, backup_file_in_folder
+                        tmp_dir, get_relative_root_path(local_path, root), local_file_name, backup_file_in_folder
                     )
                     remote_backup_file = os.path.join(
                         remote_folder_with_version, backup_file_in_folder
