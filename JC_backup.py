@@ -13,7 +13,9 @@ def cli():
 @cli.command()
 @click.option("--remote-ip", prompt="IP address of remote backup server machine")
 @click.option("--remote-user", prompt="Username of remote backup server machine")
-@click.option("--ssh-key-file-path", prompt="Local path to ssh key bounded with remote server")
+@click.option(
+    "--ssh-key-file-path", prompt="Local path to ssh key bounded with remote server"
+)
 @click.option("--local-path", prompt="Backup local path")
 @click.option("--remote-path", prompt="Backup remote path")
 @click.option("--tmp-path", prompt="Path for temporary files created while backuping")
@@ -39,7 +41,9 @@ def init_full_backup(
 @cli.command()
 @click.option("--remote-ip", prompt="IP address of remote backup server machine")
 @click.option("--remote-user", prompt="Username of remote backup server machine")
-@click.option("--ssh-key-file-path", prompt="Local path to ssh key bounded with remote server")
+@click.option(
+    "--ssh-key-file-path", prompt="Local path to ssh key bounded with remote server"
+)
 @click.option("--local-path", prompt="Backup local path")
 @click.option("--remote-path", prompt="Backup remote path")
 @click.option("--tmp-path", prompt="Path for temporary files created while backuping")
@@ -65,7 +69,9 @@ def incremental_backup(
 @cli.command()
 @click.option("--remote-ip", prompt="IP address of remote backup server machine")
 @click.option("--remote-user", prompt="Username of remote backup server machine")
-@click.option("--ssh-key-file-path", prompt="Local path to ssh key bounded with remote server")
+@click.option(
+    "--ssh-key-file-path", prompt="Local path to ssh key bounded with remote server"
+)
 @click.option("--remote-path", prompt="Backup remote path")
 @click.option("--tmp-path", prompt="Path for temporary files created while backuping")
 def recover(
